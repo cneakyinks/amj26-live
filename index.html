@@ -1,0 +1,1337 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Live @ Arts &amp; Music Jam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap">
+<style>
+/* Layout: two full-screen views on one page — #stage (big screen, edge-to-edge canvas with HUD overlays) and #station (tablet creator: preview left, options right). Single deliberate dark arcade look. */
+:root {
+  --void: #0d0b1e;
+  --panel: #1a1640;
+  --panel-2: #241e55;
+  --line: #3d3480;
+  --ink: #f4f0ff;
+  --muted: #a39cd6;
+  --hot: #ff3fa4;
+  --cyan: #3ff0ff;
+  --gold: #ffd23f;
+  --lime: #7cff6b;
+  --shadow: #0a0718;
+  --font-display: "Press Start 2P", "Courier New", monospace;
+  --font-body: "VT323", "Courier New", monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 22px;
+  line-height: 1.2;
+  overflow: hidden;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+
+.view { position: fixed; inset: 0; }
+
+/* ---------- Nav ---------- */
+.nav {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: max(16px, env(safe-area-inset-right, 0px));
+  z-index: 30;
+  display: flex; gap: 6px; align-items: center;
+  background: var(--shadow);
+  border: 2px solid var(--line);
+  padding: 4px;
+  transition: opacity .4s;
+}
+.nav.faded { opacity: 0; pointer-events: none; }
+.nav a, .nav button {
+  font-family: var(--font-display); font-size: 10px; letter-spacing: .08em;
+  color: var(--muted); text-decoration: none;
+  background: transparent; border: 0; padding: 8px 10px;
+}
+.nav a[aria-current="page"] { background: var(--hot); color: var(--shadow); }
+.nav button { border-left: 2px solid var(--line); }
+
+.banner {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 56px);
+  z-index: 35; max-width: calc(100% - 32px);
+  background: var(--gold); color: var(--shadow);
+  font-size: 20px; padding: 6px 12px; text-align: center;
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+
+/* ---------- Stage ---------- */
+.backdrop { position: absolute; display: block; max-width: none; object-fit: fill; }
+#scene {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  display: block;
+}
+.hud-count {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  display: grid; gap: 6px;
+  text-shadow: 3px 3px 0 var(--shadow);
+}
+.hud-count .label { font-family: var(--font-display); font-size: clamp(8px, 1vw, 13px); color: var(--cyan); letter-spacing: .1em; }
+.hud-count .num { font-family: var(--font-display); font-size: clamp(22px, 3.6vw, 52px); color: var(--gold); font-variant-numeric: tabular-nums; }
+.hud-title {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 18px);
+  left: 50%; transform: translateX(-50%);
+  font-family: var(--font-display); font-size: clamp(8px, 1.25vw, 22px);
+  color: var(--ink); letter-spacing: .1em; white-space: nowrap;
+  text-shadow: 3px 3px 0 var(--hot);
+}
+.ticker {
+  position: absolute; left: 0; right: 0;
+  bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--shadow); border-top: 2px solid var(--line);
+  overflow: hidden; white-space: nowrap;
+  font-size: clamp(18px, 1.8vw, 28px); height: calc(40px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center;
+}
+.ticker-tag {
+  flex: none; height: 40px; display: flex; align-items: center;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 12px;
+  font-family: var(--font-display); font-size: 10px; color: var(--shadow); background: var(--cyan);
+  letter-spacing: .1em; position: relative; z-index: 1;
+}
+.ticker-track { display: inline-flex; gap: 32px; padding-left: 24px; animation: tick 30s linear infinite; }
+.ticker-track span b { color: var(--hot); font-weight: normal; }
+@keyframes tick { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+.arrival {
+  position: absolute; left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 58px);
+  transform: translate(-50%, 140%);
+  background: var(--panel); border: 3px solid var(--gold);
+  box-shadow: 6px 6px 0 var(--shadow);
+  padding: 12px 22px 14px; text-align: center; min-width: min(420px, 80vw);
+  transition: transform .35s steps(5);
+}
+.arrival.show { transform: translate(-50%, 0); }
+.arrival .k { font-family: var(--font-display); font-size: clamp(8px, 1vw, 13px); color: var(--cyan); letter-spacing: .14em; }
+.arrival .n { font-family: var(--font-display); font-size: clamp(18px, 3vw, 44px); color: var(--ink); margin-block: 10px 8px; text-shadow: 3px 3px 0 var(--hot); word-break: break-word; }
+.arrival .f { font-size: clamp(20px, 2vw, 30px); color: var(--gold); }
+.arrival .c { font-size: clamp(17px, 1.5vw, 24px); color: var(--muted); margin-top: 4px; }
+
+.empty {
+  position: absolute; left: 50%; top: 62%; transform: translate(-50%, -50%);
+  text-align: center; width: min(560px, calc(100% - 32px));
+  background: color-mix(in srgb, var(--shadow) 82%, transparent);
+  border: 2px dashed var(--line); padding: 18px 20px;
+}
+.empty h2 { font-family: var(--font-display); font-size: clamp(12px, 1.6vw, 20px); color: var(--gold); margin: 0 0 10px; line-height: 1.5; }
+.empty p { margin: 0; color: var(--muted); }
+
+/* ---------- Station ---------- */
+#station { overflow-y: auto; background: var(--void);
+  background-image: linear-gradient(var(--panel) 2px, transparent 2px), linear-gradient(90deg, var(--panel) 2px, transparent 2px);
+  background-size: 32px 32px; }
+.station-wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 72px 32px;
+  display: grid; grid-template-columns: minmax(260px, 380px) minmax(0, 1fr); gap: 24px; align-items: start;
+}
+@media (max-width: 760px) { .station-wrap { grid-template-columns: minmax(0, 1fr); } }
+.station-head { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px; }
+.station-head h1 { font-family: var(--font-display); font-size: clamp(16px, 2.6vw, 28px); margin: 0; line-height: 1.4; text-shadow: 3px 3px 0 var(--hot); text-wrap: balance; }
+.station-head p { margin: 0; color: var(--muted); max-width: 46ch; }
+
+.card { background: var(--panel); border: 3px solid var(--line); box-shadow: 6px 6px 0 var(--shadow); }
+.preview { padding: 18px; display: grid; gap: 16px; justify-items: center; position: sticky; top: 72px; }
+@media (max-width: 760px) { .preview { position: static; } }
+.preview-stage {
+  width: 100%; display: grid; place-items: center; padding-block: 18px 8px;
+  background: linear-gradient(to bottom, #120e24 0 70%, #1d1844 70% 100%);
+  border: 2px solid var(--line);
+}
+#preview { width: 168px; height: 276px; image-rendering: pixelated; max-width: 100%; }
+.field { width: 100%; display: grid; gap: 6px; }
+.field label { font-family: var(--font-display); font-size: 10px; color: var(--cyan); letter-spacing: .1em; }
+#fan-name {
+  width: 100%; background: var(--shadow); border: 3px solid var(--line);
+  padding: 10px 12px; font-family: var(--font-display); font-size: 18px; text-transform: uppercase; letter-spacing: .06em;
+}
+#fan-name:focus { border-color: var(--hot); outline: none; }
+.hint { font-size: 18px; color: var(--muted); }
+.btn-row { width: 100%; display: grid; grid-template-columns: auto 1fr; gap: 10px; }
+.btn {
+  font-family: var(--font-display); font-size: 12px; letter-spacing: .08em;
+  padding: 14px 14px; border: 3px solid var(--shadow); box-shadow: 4px 4px 0 var(--shadow);
+  background: var(--panel-2); color: var(--ink);
+}
+.btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--shadow); }
+.btn.go { background: var(--hot); color: var(--shadow); }
+.btn.go:disabled { background: var(--line); color: var(--muted); cursor: not-allowed; }
+.err { color: var(--hot); font-size: 20px; text-align: center; }
+
+.options { padding: 18px; display: grid; gap: 20px; }
+.group { display: grid; gap: 8px; min-width: 0; }
+.group h3 { margin: 0; font-family: var(--font-display); font-size: 10px; color: var(--muted); letter-spacing: .12em; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatch {
+  width: 44px; height: 44px; border: 3px solid var(--shadow); padding: 0;
+  box-shadow: 3px 3px 0 var(--shadow);
+}
+.swatch[aria-pressed="true"] { outline: 3px solid var(--ink); outline-offset: 2px; }
+.spr {
+  position: relative; width: 66px; height: 86px; padding: 0;
+  display: grid; place-items: center;
+  background: var(--shadow); border: 3px solid var(--line);
+}
+.spr canvas { width: 42px; height: 69px; image-rendering: pixelated; }
+.spr[aria-pressed="true"] { border-color: var(--hot); background: var(--panel-2); }
+.spr.comm::before { content: "★"; position: absolute; top: 1px; right: 4px; color: var(--gold); font-size: 16px; line-height: 1; }
+.spr:hover, .spr:focus-visible, .spr.peek { z-index: 6; }
+/* details slide out to the right of the tile (or left when near the edge) without moving the grid */
+.pop {
+  position: absolute; top: -3px; bottom: -3px; left: calc(100% - 3px);
+  width: max-content; max-width: 220px; padding: 0 14px;
+  display: grid; align-content: center; gap: 6px; text-align: left;
+  background: var(--panel-2); border: 3px solid var(--line); box-shadow: 4px 4px 0 var(--shadow);
+  clip-path: inset(-6px 100% -6px 0); transition: clip-path .16s steps(4);
+  pointer-events: none;
+}
+.spr[aria-pressed="true"] .pop { border-color: var(--hot); }
+.spr.flip .pop { left: auto; right: calc(100% - 3px); clip-path: inset(-6px 0 -6px 100%); }
+.spr:hover .pop, .spr:focus-visible .pop, .spr.peek .pop { clip-path: inset(-6px -6px -6px -6px); }
+.pop b { font-family: var(--font-display); font-weight: normal; font-size: 10px; line-height: 1.5; color: var(--ink); }
+.pop i { font-style: normal; font-size: 19px; line-height: 1; color: var(--gold); overflow-wrap: anywhere; }
+.group.off { opacity: .35; }
+.group.off h3::after { content: " · NOT USED BY THIS PIECE"; }
+.swatch:disabled { cursor: not-allowed; }
+
+.recent { grid-column: 1 / -1; padding: 16px 18px; display: grid; gap: 10px; }
+.recent h3 { margin: 0; font-family: var(--font-display); font-size: 10px; color: var(--muted); letter-spacing: .12em; }
+.recent ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.recent li { display: grid; grid-template-columns: 28px minmax(0,1fr) auto auto; gap: 12px; align-items: center; padding: 4px 8px; background: var(--shadow); }
+.recent li canvas { width: 28px; height: 46px; image-rendering: pixelated; }
+.recent .nm { font-family: var(--font-display); font-size: 12px; overflow-wrap: anywhere; }
+.recent .tm { color: var(--muted); font-size: 18px; font-variant-numeric: tabular-nums; }
+.recent .rm { background: transparent; border: 2px solid var(--line); color: var(--muted); padding: 4px 8px; font-size: 18px; }
+.recent .rm.armed { border-color: var(--hot); color: var(--hot); }
+.recent .none { color: var(--muted); }
+
+.done {
+  position: fixed; inset: 0; z-index: 40; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--void) 92%, transparent);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.done .card { padding: 28px 24px; display: grid; gap: 16px; justify-items: center; text-align: center; max-width: 520px; width: 100%; }
+.done h2 { font-family: var(--font-display); font-size: clamp(16px, 3vw, 26px); margin: 0; color: var(--gold); text-shadow: 3px 3px 0 var(--hot); line-height: 1.4; }
+.done p { margin: 0; color: var(--muted); }
+#done-sprite { width: 112px; height: 184px; image-rendering: pixelated; }
+
+/* ---------- Hidden organiser panel ---------- */
+.admin-hot { position: fixed; right: 0; bottom: 0; z-index: 45; width: 64px; height: 64px; padding: 0; border: 0;
+  background: transparent; opacity: 0; cursor: default; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+.admin {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 60; width: min(480px, 100%);
+  background: var(--panel); border-left: 3px solid var(--line); box-shadow: -8px 0 0 var(--shadow);
+  display: flex; flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.admin-head { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 2px solid var(--line); }
+.admin-head h2 { margin: 0; flex: 1; font-family: var(--font-display); font-size: 12px; letter-spacing: .1em; color: var(--gold); }
+.admin-head button, .admin-tabs button, .admin-row button, .admin-key button {
+  font-family: var(--font-display); font-size: 9px; letter-spacing: .08em; padding: 8px 10px;
+  background: var(--shadow); border: 2px solid var(--line); color: var(--muted);
+}
+.admin-stats { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 10px 16px 0; font-size: 19px; color: var(--muted); }
+.admin-stats b { color: var(--ink); font-weight: normal; }
+.admin-tabs { display: flex; gap: 6px; padding: 10px 16px; }
+.admin-tabs button[aria-selected="true"] { background: var(--hot); color: var(--shadow); border-color: var(--hot); }
+.admin-body { flex: 1; overflow-y: auto; padding: 0 16px 16px; display: grid; gap: 8px; align-content: start; }
+.admin-msg { color: var(--muted); font-size: 19px; }
+.admin-msg.bad { color: var(--hot); }
+.admin-key { display: grid; gap: 8px; }
+.admin-key input { background: var(--shadow); border: 3px solid var(--line); padding: 8px 10px; font-size: 20px; width: 100%; }
+.admin-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  padding: 8px; background: var(--shadow); border: 2px solid transparent; }
+.admin-row.feat { border-color: var(--gold); }
+.admin-row canvas { width: 36px; height: 63px; image-rendering: pixelated; background: #120e24; }
+.admin-row .t { font-family: var(--font-display); font-size: 10px; line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
+.admin-row .m { font-size: 18px; color: var(--muted); overflow-wrap: anywhere; }
+.admin-row .new { font-family: var(--font-display); font-size: 8px; color: var(--shadow); background: var(--lime); padding: 2px 4px; margin-left: 6px; vertical-align: middle; }
+.admin-row button[aria-pressed="true"] { background: var(--gold); color: var(--shadow); border-color: var(--gold); }
+.admin-row button.armed { border-color: var(--hot); color: var(--hot); }
+.admin-row button:disabled { opacity: .5; cursor: wait; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; }
+  .arrival { transition: none; }
+}
+</style>
+
+</head><body>
+<nav class="nav" id="nav" aria-label="Screens">
+  <a href="#stage" id="nav-stage">STAGE</a>
+  <a href="#station" id="nav-station">STATION</a>
+  <button type="button" id="fs-btn" title="Full screen for the big display">FULL SCREEN</button>
+</nav>
+
+<div class="banner" id="banner" hidden></div>
+
+<!-- Organisers: tap the bottom-right corner 6 times (or press Shift+A) -->
+<button type="button" class="admin-hot" id="admin-hot" tabindex="-1" aria-hidden="true"></button>
+<aside class="admin" id="admin" aria-label="Organiser panel" hidden>
+  <div class="admin-head">
+    <h2>ORGANISER</h2>
+    <button type="button" id="admin-refresh">REFRESH</button>
+    <button type="button" id="admin-lock" hidden>LOCK</button>
+    <button type="button" id="admin-close">CLOSE</button>
+  </div>
+  <form class="admin-key admin-body" id="admin-key" style="flex:none;padding-top:14px" hidden>
+    <label class="admin-msg" for="admin-key-in">Enter the admin key from the Apps Script settings (ADMIN_KEY).</label>
+    <input id="admin-key-in" type="password" autocomplete="off" spellcheck="false">
+    <button type="submit">UNLOCK</button>
+    <span class="admin-msg bad" id="admin-key-msg"></span>
+  </form>
+  <div id="admin-main" hidden style="display:contents">
+    <div class="admin-stats" id="admin-stats"></div>
+    <div class="admin-tabs" role="tablist">
+      <button type="button" role="tab" id="tab-entries" aria-selected="true">COSTUMES</button>
+      <button type="button" role="tab" id="tab-fans" aria-selected="false">FANS</button>
+    </div>
+    <div class="admin-body" id="admin-list" role="tabpanel"></div>
+  </div>
+</aside>
+
+<!-- ============ STAGE ============ -->
+<section class="view" id="stage" aria-label="Live stage">
+  <img id="backdrop" class="backdrop" src="backdrop.jpg" alt="Marsiling's Arts &amp; Music Jam 2026: Sat 21 November, 6–9pm, 908A Woodlands Square">
+  <canvas id="scene"></canvas>
+  <div class="hud-count" aria-live="polite">
+    <span class="label">FANS ON THE FLOOR</span>
+    <span class="num" id="count">000</span>
+  </div>
+  <div class="hud-title" id="hud-title">LIVE @ ARTS &amp; MUSIC JAM</div>
+  <div class="empty" id="empty">
+    <h2>THE FLOOR IS OPEN</h2>
+    <p>Make your character at the station and watch it drop onto this stage.</p>
+  </div>
+  <div class="arrival" id="arrival" aria-live="assertive">
+    <div class="k" id="arrival-k">NOW ENTERING THE JAM</div>
+    <div class="n" id="arrival-name">—</div>
+    <div class="f" id="arrival-num">FAN #000</div>
+    <div class="c" id="arrival-credit" hidden></div>
+  </div>
+  <div class="ticker">
+    <div class="ticker-tag">JUST IN</div>
+    <div class="ticker-track" id="ticker"><span>Waiting for the first fan…</span></div>
+  </div>
+</section>
+
+<!-- ============ STATION ============ -->
+<section class="view" id="station" aria-label="Character station" hidden>
+  <div class="station-wrap">
+    <header class="station-head">
+      <h1>BUILD YOUR FESTIVAL SELF</h1>
+      <p>Pick a look, type your name, and send yourself to the big screen.</p>
+    </header>
+
+    <div class="card preview">
+      <div class="preview-stage"><canvas id="preview" width="168" height="276" aria-label="Your character preview"></canvas></div>
+      <form id="make-form" class="field" autocomplete="off">
+        <label for="fan-name">YOUR NAME</label>
+        <input id="fan-name" name="fan-name" maxlength="12" placeholder="PLAYER 1" spellcheck="false">
+        <span class="hint">Up to 12 letters or numbers. This shows on the big screen.</span>
+        <div class="btn-row" style="margin-top:10px">
+          <button type="button" class="btn" id="shuffle">SHUFFLE</button>
+          <button type="submit" class="btn go" id="send" disabled>SEND TO STAGE</button>
+        </div>
+        <div class="err" id="send-err" hidden></div>
+      </form>
+    </div>
+
+    <div class="card options" id="options"></div>
+
+    <div class="card recent">
+      <h3>LAST SENT FROM THIS EVENT</h3>
+      <ul id="recent"><li class="none">Nobody yet. The first guest gets the spotlight.</li></ul>
+    </div>
+  </div>
+
+  <div class="done" id="done" hidden>
+    <div class="card">
+      <h2 id="done-title">YOU'RE ON STAGE!</h2>
+      <canvas id="done-sprite" width="112" height="184"></canvas>
+      <p>Look up at the big screen. Your character is dropping in now.</p>
+      <button type="button" class="btn go" id="next-guest">NEXT GUEST</button>
+      <span class="hint" id="done-timer">Resetting in 8s</span>
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+"use strict";
+
+/* ===== Festival config — rename here ===== */
+const FESTIVAL = "LIVE @ ARTS & MUSIC JAM";
+const BPM = 124;
+document.getElementById("hud-title").textContent = FESTIVAL;
+
+/* ===== Palettes (stored as indices so the stage never trusts raw colours) ===== */
+const SKIN  = ["#ffdbb4","#f1c08e","#d39a6a","#a86b45","#7a4a2c","#4e2e1d"];
+const HAIR  = ["#1b1530","#5a3825","#c98a3b","#f5d76e","#e8e8f0","#ff3fa4","#3ff0ff","#7cff6b","#9b5cff"];
+const SHIRT = ["#ff3fa4","#3ff0ff","#ffd23f","#7cff6b","#9b5cff","#ff6b3f","#f4f0ff","#2b2560"];
+const PANTS = ["#2b2560","#1d3b6e","#3a3a46","#6b3f1d","#7a1f4a","#e8e8f0"];
+const ACC   = ["#3ff0ff","#ff3fa4","#ffd23f","#7cff6b"];
+/* ===== Community apparel from the Costume Call =====
+   Paste a new export's "palette" and "pieces" here; options appear automatically.
+   handle: their tag without the @ (e.g. "moonie.px"). Credits show @handle, or the name when it is empty.
+   Palette slots 4, 5 and 6 are skin tones and follow the guest's chosen skin. */
+const APPAREL = {
+  palette: ["#1b1530","#f4f0ff","#a39cd6","#4a4470","#ffdbb4","#d39a6a","#7a4a2c","#5a3825","#ff3fa4","#ff6b3f","#ffd23f","#7cff6b","#3ff0ff","#1d3b6e","#9b5cff","#2b2560"],
+  pieces: {
+    hair: [
+      { id: "mvxvmfzhdpjc", title: "Luna Head", designer: "Luna Head", handle: "", pixels: "...bb.bbb.......b.bb.......bbbbbb.....bbbbbbbb...bbbbbb4bbb...bb4b44bb....bb04404bb..bbb4444b.....b444444......b..........1................................................................................................................................." },
+      { id: "mvxvvztjb4i2", title: "Le", designer: "moonie", handle: "", pixels: ".......................................777777......766667......666666......6f66f6......060060......006600.......0000........................................................................................................................................" },
+      { id: "mvy4xwft9phc", title: "The All Color Afrostache", designer: "Dan", handle: "", pixels: "..............9aabbcce...99aabbccee..99aabbccee..99a....cee...........................a..88..a....aa8888aa.....a8..8a......................................................................................................................................." },
+      { id: "mvyyvqgg18uk", title: "Neon Padme", designer: "Kody", handle: "", pixels: "88777777778887877777787887788778877887755ee55778877555555778877585585778877585585778187455554781187558855781117225522711717332233717........................................................................................................................" },
+    ],
+    top: [],
+    bottom: [],
+    accessory: [
+      { id: "mvxwkzpwfjif", title: "Basketball", designer: "moonie", handle: "", pixels: "................................................................................................................................................................................0a0........a0909.......00000.......90909........090........................." },
+    ],
+  },
+};
+const SKIN_SLOTS = new Set([4, 5, 6]);
+const COMMUNITY = new Map();
+const COMM_IDS = { hair: [], top: [], bottom: [], accessory: [] };
+const BASE = {
+  hair: ["short","long","mohawk","afro","buns","spiky"], top: ["tee","tank"],
+  bottom: ["pants","shorts"], accessory: ["none","shades","headphones","cap","crown","glowstick"],
+};
+/* These arrays are shared with GROUPS, so they are refilled in place, never replaced. */
+const HAIR_STYLES = [], OUTFITS = [], BOTTOMS = [], GEAR = [];
+const SLOT_LISTS = { hair: HAIR_STYLES, top: OUTFITS, bottom: BOTTOMS, accessory: GEAR };
+const pieceKey = id => "c:" + String(id).replace(/[^a-z0-9]/gi, "");
+/* list: [{ id, title, designer, handle?, category, pixels }] — from the Google Sheet, or the built-in fallback. */
+function setPieces(list) {
+  COMMUNITY.clear();
+  Object.keys(COMM_IDS).forEach(k => COMM_IDS[k].length = 0);
+  list.forEach(p => {
+    const kind = p && p.category;
+    if (!COMM_IDS[kind] || typeof p.pixels !== "string" || p.pixels.length !== 252 || !/^[0-9a-f.]+$/.test(p.pixels)) return;
+    const key = pieceKey(p.id);
+    if (key === "c:" || COMMUNITY.has(key)) return;
+    const cells = [];
+    for (let i = 0; i < 252; i++) if (p.pixels[i] !== ".") cells.push({ x: i % 12, y: Math.floor(i / 12), i: "0123456789abcdef".indexOf(p.pixels[i]) });
+    COMMUNITY.set(key, { kind, title: String(p.title || "").slice(0, 24), designer: String(p.designer || "").slice(0, 16),
+      handle: String(p.handle || "").replace(/^@+/, "").replace(/[^A-Za-z0-9._]/g, "").slice(0, 30), cells });
+    COMM_IDS[kind].push(key);
+  });
+  Object.keys(SLOT_LISTS).forEach(k => SLOT_LISTS[k].splice(0, Infinity, ...BASE[k], ...COMM_IDS[k]));
+}
+const FALLBACK_PIECES = [];
+Object.keys(COMM_IDS).forEach(kind => (APPAREL.pieces[kind] || []).forEach(p => FALLBACK_PIECES.push({ ...p, category: kind })));
+setPieces(FALLBACK_PIECES);
+const isComm = v => typeof v === "string" && COMMUNITY.has(v);
+const creditName = v => { const p = COMMUNITY.get(v); return p.handle ? "@" + p.handle : p.designer; };
+const LABEL = { short:"Short", long:"Long", mohawk:"Mohawk", afro:"Afro", buns:"Buns", spiky:"Spiky",
+  tee:"Tee", tank:"Tank", pants:"Pants", shorts:"Shorts",
+  none:"None", shades:"Shades", headphones:"Phones", cap:"Cap", crown:"Crown", glowstick:"Glow" };
+const labelOf = v => isComm(v) ? COMMUNITY.get(v).title : LABEL[v];
+
+const GROUPS = [
+  { key:"skin", label:"SKIN", type:"color", options:SKIN },
+  { key:"hairStyle", label:"HAIRSTYLE", type:"sprite", options:HAIR_STYLES },
+  { key:"hair", label:"HAIR COLOUR", type:"color", options:HAIR, for:"hairStyle" },
+  { key:"outfit", label:"TOP", type:"sprite", options:OUTFITS },
+  { key:"shirt", label:"TOP COLOUR", type:"color", options:SHIRT, for:"outfit" },
+  { key:"bottom", label:"BOTTOMS", type:"sprite", options:BOTTOMS },
+  { key:"pants", label:"BOTTOMS COLOUR", type:"color", options:PANTS, for:"bottom" },
+  { key:"gear", label:"ACCESSORY", type:"sprite", options:GEAR },
+  { key:"acc", label:"ACCESSORY COLOUR", type:"color", options:ACC, for:"gear" },
+];
+function colourUsed(gr, l) {
+  const v = l[gr.for];
+  if (isComm(v)) return false;
+  if (gr.key === "acc") return ["headphones","cap","glowstick"].includes(v);
+  return true;
+}
+const CREDIT_SLOTS = [["hairStyle","Hairstyle"],["outfit","Top"],["bottom","Bottoms"],["gear","Accessory"]];
+function creditsFor(l) {
+  return CREDIT_SLOTS.filter(([k]) => isComm(l[k])).map(([k, name]) => name + " by " + creditName(l[k])).join(" · ");
+}
+
+const OUTLINE = "#0a0718", EYE = "#1b1530", MOUTH = "#7a2b4a", GOLD = "#ffd23f";
+const SW = 14, SH = 23;
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.round(((n >> 16) & 255) * f), g = Math.round(((n >> 8) & 255) * f), b = Math.round((n & 255) * f);
+  return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
+}
+const clampIdx = (v, arr) => { v = Number(v); return Number.isInteger(v) && v >= 0 && v < arr.length ? v : 0; };
+const pick = (v, arr) => arr.includes(v) ? v : arr[0];
+
+function sanitizeLook(l) {
+  l = l && typeof l === "object" ? l : {};
+  return {
+    skin: clampIdx(l.skin, SKIN), hair: clampIdx(l.hair, HAIR), shirt: clampIdx(l.shirt, SHIRT),
+    pants: clampIdx(l.pants, PANTS), acc: clampIdx(l.acc, ACC),
+    hairStyle: pick(l.hairStyle, HAIR_STYLES), outfit: pick(l.outfit, OUTFITS), bottom: pick(l.bottom, BOTTOMS), gear: pick(l.gear, GEAR),
+  };
+}
+function cleanName(s) {
+  return String(s || "").toUpperCase().replace(/[^A-Z0-9 ]/g, "").replace(/\s+/g, " ").trim().slice(0, 12);
+}
+function sanitizeFan(id, d) {
+  d = d || {};
+  return { id, name: cleanName(d.name) || "FAN", look: sanitizeLook(d.look), raw: d.look, createdAt: Number(d.createdAt) || 0 };
+}
+function randomLook() {
+  const r = a => Math.floor(Math.random() * a.length);
+  return { skin:r(SKIN), hair:r(HAIR), shirt:r(SHIRT), pants:r(PANTS), acc:r(ACC),
+    hairStyle:HAIR_STYLES[r(HAIR_STYLES)], outfit:OUTFITS[r(OUTFITS)], bottom:BOTTOMS[r(BOTTOMS)], gear:GEAR[r(GEAR)] };
+}
+
+/* Arm cells per pose: [x, y, isHand] */
+function armCells(pose) {
+  const c = [];
+  const side = (x, top, bottom, handY) => { for (let y = top; y <= bottom; y++) c.push([x, y, false]); c.push([x, handY, true]); };
+  if (pose === "up") { side(2,4,9,3); side(9,4,9,3); }
+  else if (pose === "walkA") { side(2,9,12,13); side(9,9,13,14); }
+  else if (pose === "walkB") { side(2,9,13,14); side(9,9,12,13); }
+  else { side(2,9,13,14); side(9,9,13,14); }
+  return c;
+}
+/* Moves a top or bottom drawn on the standing pose so sleeves and legs follow the pose */
+function poseCells(cells, pose) {
+  const out = [];
+  for (const c of cells) {
+    let y = c.y; const left = c.x <= 5, side = c.x <= 2 || c.x >= 9;
+    const lifted = (pose === "walkA" && left) || (pose === "walkB" && !left);
+    if (side && y >= 9 && y <= 14) {
+      if (pose === "up") { if (y === 9) out.push({ ...c, y: 8 }); else y = 17 - y; }
+      else if (lifted) { if (y === 13) continue; if (y === 14) y = 13; }
+    } else if (lifted && y >= 17) { if (y === 17) continue; y -= 1; }
+    out.push({ ...c, y });
+  }
+  return out;
+}
+
+/* ===== Sprite builder: 12x21 art on a 14x23 grid with outline.
+   Layers: body > bottoms > top > hairstyle > accessory (raised arms go over hair) ===== */
+function buildSprite(look, pose) {
+  const g = Array.from({ length: SH }, () => Array(SW).fill(null));
+  const P = (x, y, c) => { x += 1; y += 1; if (x >= 0 && x < SW && y >= 0 && y < SH) g[y][x] = c; };
+  const R = (x0, y0, x1, y1, c) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) P(x, y, c); };
+  const skin = SKIN[look.skin], hair = HAIR[look.hair], shirt = SHIRT[look.shirt], pants = PANTS[look.pants], acc = ACC[look.acc];
+  const shoe = "#1b1530";
+  const piece = v => isComm(v) ? COMMUNITY.get(v) : null;
+  const paint = cells => cells.forEach(c => P(c.x, c.y, SKIN_SLOTS.has(c.i) ? skin : APPAREL.palette[c.i]));
+  const hp = piece(look.hairStyle), tp = piece(look.outfit), bp = piece(look.bottom), ap = piece(look.gear);
+  const arms = armCells(pose);
+  const lUp = pose === "walkA" ? 1 : 0, rUp = pose === "walkB" ? 1 : 0;
+
+  if (!hp && look.hairStyle === "long") { R(2,4,2,11,hair); R(9,4,9,11,hair); }
+
+  // body
+  R(3,9,8,14,skin);
+  arms.forEach(([x, y]) => P(x, y, skin));
+  R(3,15,8,15,skin); R(3,16,4,18-lUp,skin); R(7,16,8,18-rUp,skin);
+  R(2,19-lUp,4,19-lUp,shoe); R(7,19-rUp,9,19-rUp,shoe);
+  R(3,3,8,8,skin); P(4,6,EYE); P(7,6,EYE); P(5,7,MOUTH); P(6,7,MOUTH);
+
+  // bottoms
+  if (bp) paint(poseCells(bp.cells, pose));
+  else {
+    R(3,15,8,15,pants);
+    if (look.bottom === "shorts") { R(3,16,4,16,pants); R(7,16,8,16,pants); }
+    else { R(3,16,4,18-lUp,pants); R(7,16,8,18-rUp,pants); }
+  }
+
+  // top
+  if (tp) paint(poseCells(tp.cells, pose));
+  else {
+    R(3,9,8,14,shirt);
+    if (look.outfit === "tank") { P(3,9,skin); P(8,9,skin); }
+    else arms.forEach(([x, y, hand]) => { if (!hand) P(x, y, shirt); });
+  }
+  const raised = pose === "up" ? arms.map(([x, y]) => [x, y, g[y + 1][x + 1]]) : null;
+
+  // hairstyle
+  if (hp) paint(hp.cells);
+  else switch (look.hairStyle) {
+    case "short": R(3,2,8,3,hair); P(3,4,hair); P(8,4,hair); break;
+    case "long": R(2,2,9,3,hair); P(3,4,hair); P(8,4,hair); break;
+    case "mohawk": R(5,-1,6,3,hair); break;
+    case "afro": R(2,-1,9,0,hair); R(1,1,10,3,hair); R(1,4,2,7,hair); R(9,4,10,7,hair); R(3,4,8,4,hair); break;
+    case "buns": R(3,2,8,3,hair); P(3,4,hair); P(8,4,hair); R(2,0,3,1,hair); R(8,0,9,1,hair); break;
+    case "spiky": R(3,2,8,3,hair); P(3,1,hair); P(5,1,hair); P(7,1,hair); P(4,0,hair); P(6,0,hair); P(8,1,hair); P(3,4,hair); P(8,4,hair); break;
+  }
+  if (raised) raised.forEach(([x, y, c]) => P(x, y, c));
+
+  // accessory
+  if (ap) paint(ap.cells);
+  else switch (look.gear) {
+    case "shades": R(3,5,8,6,"#120e24"); P(4,5,"#6b5fd6"); P(7,5,"#6b5fd6"); break;
+    case "headphones": R(3,1,8,1,acc); R(2,2,2,4,acc); R(9,2,9,4,acc); R(1,5,2,7,acc); R(9,5,10,7,acc); break;
+    case "cap": R(3,1,8,3,acc); R(8,3,11,3,shade(acc,0.65)); break;
+    case "crown": R(3,1,8,2,GOLD); P(3,0,GOLD); P(5,0,GOLD); P(6,0,GOLD); P(8,0,GOLD); P(5,1,"#ff3fa4"); P(6,1,"#ff3fa4"); break;
+    case "glowstick":
+      if (pose === "up") R(9,-1,9,2,acc); else R(10,10,10,14,acc);
+      break;
+  }
+
+  // outline pass
+  const out = g.map(r => r.slice());
+  for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
+    if (g[y][x]) continue;
+    if ((g[y-1] && g[y-1][x]) || (g[y+1] && g[y+1][x]) || g[y][x-1] || g[y][x+1]) out[y][x] = OUTLINE;
+  }
+  const c = document.createElement("canvas"); c.width = SW; c.height = SH;
+  const cx = c.getContext("2d");
+  for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) if (out[y][x]) { cx.fillStyle = out[y][x]; cx.fillRect(x, y, 1, 1); }
+  return c;
+}
+const POSES = ["stand","walkA","walkB","up"];
+function spriteSet(look) { const s = {}; POSES.forEach(p => s[p] = buildSprite(look, p)); return s; }
+function paintSprite(canvas, sprite) {
+  const x = canvas.getContext("2d"); x.imageSmoothingEnabled = false;
+  x.clearRect(0, 0, canvas.width, canvas.height);
+  x.drawImage(sprite, 0, 0, canvas.width, canvas.height);
+}
+
+/* ===== Store: live shared database, or a single-screen demo fallback ===== */
+let store = null, mode = "connecting";
+const banner = document.getElementById("banner");
+
+function liveStore(db) {
+  const col = db.collection("fans");
+  const map = d => sanitizeFan(d.id, d.data());
+  return {
+    subscribeAll(next, err) {
+      return col.onSnapshot(s => next(s.docs.map(map), s.docChanges().map(c => ({ type:c.type, fan:map(c.doc) })), s.metadata), err);
+    },
+    subscribeRecent(next, err) {
+      return col.orderBy("createdAt","desc").limit(5).onSnapshot(s => next(s.docs.map(map)), err);
+    },
+    add: data => col.add(data),
+    remove: id => col.doc(id).delete(),
+  };
+}
+function demoStore() {
+  let list = [], seq = 0; const all = new Set(), recent = new Set();
+  const emit = changes => {
+    all.forEach(f => f(list.slice(), changes, { fromCache:false }));
+    const r = list.slice().sort((a,b) => b.createdAt - a.createdAt).slice(0,5);
+    recent.forEach(f => f(r));
+  };
+  return {
+    subscribeAll(next) { all.add(next); next(list.slice(), [], { fromCache:false }); return () => all.delete(next); },
+    subscribeRecent(next) { recent.add(next); next([]); return () => recent.delete(next); },
+    async add(data) { const fan = sanitizeFan("demo" + (++seq), data); list.push(fan); emit([{ type:"added", fan }]); },
+    async remove(id) { const fan = list.find(f => f.id === id); list = list.filter(f => f.id !== id); if (fan) emit([{ type:"removed", fan }]); },
+  };
+}
+
+/* ===== Google Sheet backend (pixelcostumeform/apps-script/Code.gs) ===== */
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbyc3FxPdY9vkY0hP1w8zT7olzf4S1g1NtvLjg_QtI4lWknlPK1StzHmT-i4JLLZcn8k/exec";
+const ADMIN_KEY_STORE = "amj26-admin-key";   // same key name as the costume form, so one unlock covers both
+const TOKEN_STORE = "amj26-fan-tokens";
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} };
+let adminKey = lsGet(ADMIN_KEY_STORE) || "";
+function sheetError(code) { const e = new Error(code || "failed"); e.code = code; return e; }
+async function sheetGet(params) {
+  const r = await fetch(SHEET_URL + "?" + new URLSearchParams(params), { cache: "no-store" });
+  const j = await r.json();
+  if (!j.ok) throw sheetError(j.error);
+  return j;
+}
+async function sheetPost(body) {
+  // text/plain keeps this a "simple" request, so the browser skips the CORS preflight Apps Script can't answer.
+  const r = await fetch(SHEET_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
+  const j = await r.json();
+  if (!j.ok) throw sheetError(j.error);
+  return j;
+}
+
+function sheetStore() {
+  const POLL_MS = 5000;
+  const list = new Map();          // id -> fan
+  const all = new Set(), recent = new Set();
+  let tokens = {}; try { tokens = JSON.parse(lsGet(TOKEN_STORE) || "{}") || {}; } catch (e) { tokens = {}; }
+  let since = 0, loaded = false, fails = 0, timer = 0;
+  const recentList = () => [...list.values()].sort((a,b) => b.createdAt - a.createdAt).slice(0, 5);
+  const emit = changes => {
+    all.forEach(f => f([...list.values()], changes, { fromCache: false }));
+    const r = recentList(); recent.forEach(f => f(r));
+  };
+  async function poll() {
+    clearTimeout(timer);
+    try {
+      // overlap the window a little; ids we already have are skipped
+      const j = await sheetGet({ action: "fans", since: String(Math.max(0, since - 15000)) });
+      fails = 0;
+      const changes = [];
+      (j.fans || []).forEach(d => {
+        if (list.has(String(d.id))) return;
+        const fan = sanitizeFan(String(d.id), d); list.set(fan.id, fan); changes.push({ type: "added", fan });
+      });
+      (j.removed || []).forEach(id => { const fan = list.get(String(id)); if (fan) { list.delete(fan.id); changes.push({ type: "removed", fan }); } });
+      since = Number(j.now) || Date.now();
+      if (!loaded) { loaded = true; emit([]); } else if (changes.length) emit(changes);
+      if (banner.dataset.src === "sheet") { banner.hidden = true; delete banner.dataset.src; }
+    } catch (e) {
+      if (++fails >= 3) { banner.textContent = "Can't reach the live feed. This screen keeps trying."; banner.dataset.src = "sheet"; banner.hidden = false; }
+    }
+    timer = setTimeout(poll, document.hidden ? POLL_MS * 3 : POLL_MS);
+  }
+  poll();
+  return {
+    subscribeAll(next) { all.add(next); if (loaded) next([...list.values()], [], { fromCache: false }); return () => all.delete(next); },
+    subscribeRecent(next) { recent.add(next); next(recentList()); return () => recent.delete(next); },
+    async add(data) {
+      const j = await sheetPost({ action: "fan", name: data.name, look: data.look });
+      tokens[j.id] = j.token; lsSet(TOKEN_STORE, JSON.stringify(tokens));
+      if (!list.has(j.id)) { const fan = sanitizeFan(j.id, { ...data, createdAt: j.createdAt }); list.set(fan.id, fan); if (loaded) emit([{ type: "added", fan }]); }
+    },
+    canRemove: id => !!tokens[id] || !!adminKey,
+    async remove(id) {
+      await sheetPost({ action: "removeFan", id, token: tokens[id] || "", key: tokens[id] ? "" : adminKey });
+      delete tokens[id]; lsSet(TOKEN_STORE, JSON.stringify(tokens));
+      const fan = list.get(id); if (fan) { list.delete(id); emit([{ type: "removed", fan }]); }
+    },
+  };
+}
+
+/* ===== Featured costume pieces from the Sheet ===== */
+let piecesLoaded = false;
+async function refreshPieces() {
+  let j;
+  try { j = await sheetGet({ action: "pieces" }); } catch (e) { return; }   // keep whatever we have (fallback pieces at first)
+  const incoming = (j.pieces || []).map(p => ({ id: p.id, title: p.title, designer: p.designer, category: p.category, pixels: p.pixels }));
+  const before = new Set(COMMUNITY.keys());
+  const prevSig = [...COMMUNITY.entries()].map(([k, v]) => k + v.cells.length).sort().join("|");
+  setPieces(incoming);
+  const nowSig = [...COMMUNITY.entries()].map(([k, v]) => k + v.cells.length).sort().join("|");
+  if (piecesLoaded && nowSig === prevSig) return;
+  // re-check every fan's look against the new set of pieces, then redraw
+  fans.forEach(f => { f.look = sanitizeLook(f.raw); });
+  sprites.clear();
+  optionsEl.replaceChildren(); buildOptions();
+  look = sanitizeLook(look); syncOptions();
+  // spotlight pieces that were featured after this screen loaded
+  if (piecesLoaded) [...COMMUNITY.keys()].filter(k => !before.has(k)).forEach(k => queue.push({ piece: k }));
+  piecesLoaded = true;
+  if (lastRecent.length) renderRecent(lastRecent);
+  if (adminOpen) renderAdmin();
+}
+
+async function initStore() {
+  let db = null;
+  try { if (window.claude && typeof window.claude.use === "function") db = await window.claude.use("db"); } catch (e) { db = null; }
+  if (db) { store = liveStore(db); mode = "live"; }
+  else if (SHEET_URL) { store = sheetStore(); mode = "live"; }
+  else {
+    store = demoStore(); mode = "demo";
+    banner.textContent = "Demo mode: characters stay on this screen only. Add SHEET_URL to link the station and the big screen.";
+    banner.hidden = false;
+  }
+  startStageFeed();
+  startStationFeed();
+}
+
+/* ===== Routing ===== */
+const views = { stage: document.getElementById("stage"), station: document.getElementById("station") };
+const navStage = document.getElementById("nav-stage"), navStation = document.getElementById("nav-station");
+const fsBtn = document.getElementById("fs-btn");
+let current = "stage";
+function route() {
+  const h = (location.hash || "").replace("#", "");
+  current = h === "station" ? "station" : "stage";
+  views.stage.hidden = current !== "stage";
+  views.station.hidden = current !== "station";
+  navStage.toggleAttribute("aria-current", false); navStation.toggleAttribute("aria-current", false);
+  (current === "stage" ? navStage : navStation).setAttribute("aria-current", "page");
+  fsBtn.hidden = current !== "stage";
+  if (current === "stage") { resizeScene(); requestWake(); }
+  wakeNav();
+}
+addEventListener("hashchange", route);
+
+/* nav auto-hides on the big screen */
+const nav = document.getElementById("nav"); let navTimer = 0;
+function wakeNav() {
+  nav.classList.remove("faded"); clearTimeout(navTimer);
+  if (current === "stage") navTimer = setTimeout(() => nav.classList.add("faded"), 4000);
+}
+["mousemove","touchstart","keydown"].forEach(ev => addEventListener(ev, wakeNav, { passive:true }));
+fsBtn.addEventListener("click", async () => {
+  try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }
+  catch (e) { fsBtn.textContent = "USE BROWSER F11"; }
+});
+let wakeLock = null;
+async function requestWake() { try { if (!wakeLock && navigator.wakeLock) wakeLock = await navigator.wakeLock.request("screen"); wakeLock && wakeLock.addEventListener("release", () => wakeLock = null); } catch (e) {} }
+
+/* ===================== STAGE ===================== */
+const scene = document.getElementById("scene");
+const ctx = scene.getContext("2d");
+const LH = 180; let LW = 320;
+const FLOOR_TOP = 104, FLOOR_BOT = 168;
+let stars = [];
+const backdrop = document.getElementById("backdrop");
+const BANNER_RATIO = 2400 / 532;
+function stageGeom() {
+  const cx = Math.round(LW / 2), sw = Math.round(Math.min(230, LW * 0.62)), sx = cx - Math.round(sw / 2);
+  const w = sw - 8, h = Math.min(49, Math.round(w / BANNER_RATIO));
+  const ww = Math.round(h * BANNER_RATIO);
+  return { cx, sw, sx, wall: { x: cx - Math.round(ww / 2), y: 76 - h, w: ww, h } };
+}
+let geom = stageGeom();
+function resizeScene() {
+  const r = scene.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  LW = Math.max(240, Math.round(LH * r.width / r.height));
+  scene.width = LW; scene.height = LH;
+  ctx.imageSmoothingEnabled = false;
+  geom = stageGeom();
+  const kx = r.width / LW, ky = r.height / LH, w = geom.wall;
+  Object.assign(backdrop.style, { left: w.x * kx + "px", top: w.y * ky + "px", width: w.w * kx + "px", height: w.h * ky + "px" });
+  stars = Array.from({ length: Math.round(LW / 5) }, () => ({ x: Math.floor(Math.random() * LW), y: Math.floor(Math.random() * 64), s: Math.random() * 3 + 1, o: Math.random() * 6 }));
+  walkers.forEach(w => { w.x = Math.min(w.x, LW - 12); w.tx = Math.min(w.tx, LW - 12); });
+}
+addEventListener("resize", () => { if (current === "stage") resizeScene(); });
+
+const fans = new Map();          // id -> fan
+const sprites = new Map();       // id -> sprite set
+let walkers = [];                // on-floor characters
+const queue = [];                // pop-in queue
+let popping = null;
+let confetti = [];
+const MAX_ON_FLOOR = 60;
+const pageLoad = Date.now();
+const DJ = spriteSet({ skin:2, hair:0, shirt:7, pants:0, acc:1, hairStyle:"short", outfit:"tee", bottom:"pants", gear:"headphones" });
+
+function getSprites(f) { if (!sprites.has(f.id)) sprites.set(f.id, spriteSet(f.look)); return sprites.get(f.id); }
+function fanNumber(id) {
+  const sorted = [...fans.values()].sort((a,b) => a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1));
+  return sorted.findIndex(f => f.id === id) + 1;
+}
+const rand = (a, b) => a + Math.random() * (b - a);
+function newWalker(f, x, y) {
+  return { id:f.id, x: x ?? rand(14, LW - 14), y: y ?? rand(FLOOR_TOP, FLOOR_BOT), tx:0, ty:0,
+    state:"idle", until: performance.now()/1000 + rand(0.5, 4), dir: 1, style: Math.floor(Math.random()*3) };
+}
+function addToFloor(f, x, y) {
+  walkers = walkers.filter(w => w.id !== f.id);
+  walkers.push(newWalker(f, x, y));
+  if (walkers.length > MAX_ON_FLOOR) walkers.splice(0, walkers.length - MAX_ON_FLOOR);
+}
+
+const countEl = document.getElementById("count"), emptyEl = document.getElementById("empty"), tickerEl = document.getElementById("ticker");
+function refreshHud() {
+  countEl.textContent = String(fans.size).padStart(3, "0");
+  emptyEl.hidden = fans.size > 0 || !!popping;
+  const latest = [...fans.values()].sort((a,b) => b.createdAt - a.createdAt).slice(0, 8);
+  tickerEl.replaceChildren();
+  if (!latest.length) { const s = document.createElement("span"); s.textContent = "Waiting for the first fan…"; tickerEl.append(s); tickerEl.style.animation = "none"; return; }
+  tickerEl.style.animation = "";
+  for (let rep = 0; rep < 2; rep++) latest.forEach(f => {
+    const s = document.createElement("span"); const b = document.createElement("b");
+    b.textContent = "#" + String(fanNumber(f.id)).padStart(3, "0") + " "; s.append(b, document.createTextNode(f.name)); tickerEl.append(s);
+  });
+}
+
+let loadTimer = 0;
+function startStageFeed() {
+  let first = true;
+  loadTimer = setTimeout(() => { if (mode === "live") { banner.textContent = "Can't reach the live feed yet. Check the connection; this screen keeps trying."; banner.hidden = false; } }, 10000);
+  store.subscribeAll((list, changes, meta) => {
+    if (!meta.fromCache) { clearTimeout(loadTimer); if (mode === "live") banner.hidden = true; }
+    if (first) {
+      first = false;
+      list.forEach(f => fans.set(f.id, f));
+      [...fans.values()].sort((a,b) => a.createdAt - b.createdAt).slice(-MAX_ON_FLOOR).forEach(f => addToFloor(f));
+    } else {
+      changes.forEach(({ type, fan }) => {
+        if (type === "removed") { fans.delete(fan.id); walkers = walkers.filter(w => w.id !== fan.id); sprites.delete(fan.id); return; }
+        const isNew = !fans.has(fan.id);
+        fans.set(fan.id, fan); sprites.delete(fan.id);
+        if (type === "added" && isNew) {
+          if (fan.createdAt > Math.max(pageLoad, Date.now()) - 30000) queue.push(fan.id);
+          else addToFloor(fan);
+        }
+      });
+    }
+    refreshHud();
+    if (adminOpen && adminTab === "fans") renderAdmin();
+  }, () => { clearTimeout(loadTimer); banner.textContent = "The live feed stopped. Reload this screen to reconnect."; banner.hidden = false; });
+}
+
+const arrivalCredit = document.getElementById("arrival-credit"), arrivalK = document.getElementById("arrival-k");
+const SLOT_OF_KIND = { hair: "hairStyle", top: "outfit", bottom: "bottom", accessory: "gear" };
+const MODEL_LOOK = { skin:1, hair:0, shirt:6, pants:0, acc:0, hairStyle:"short", outfit:"tee", bottom:"pants", gear:"none" };
+const arrivalEl = document.getElementById("arrival"), arrivalName = document.getElementById("arrival-name"), arrivalNum = document.getElementById("arrival-num");
+const POP_DUR = 5;
+function startPop(t) {
+  while (queue.length) {
+    const item = queue.shift();
+    if (item && item.piece) {
+      const p = COMMUNITY.get(item.piece);
+      if (!p) continue;
+      const f = { id: "piece:" + item.piece, name: p.title, look: { ...MODEL_LOOK, [SLOT_OF_KIND[p.kind]]: item.piece } };
+      sprites.delete(f.id);
+      popping = { f, piece: true, start: t, landed: false, x: Math.round(LW / 2), y: 158 };
+      arrivalK.textContent = "NEW LOOK UNLOCKED";
+      arrivalName.textContent = p.title.toUpperCase();
+      arrivalNum.textContent = "by " + creditName(item.piece);
+      arrivalCredit.textContent = "Wear it now at the character station"; arrivalCredit.hidden = false;
+      arrivalEl.classList.add("show");
+      emptyEl.hidden = true;
+      return;
+    }
+    const f = fans.get(item);
+    if (!f) continue;
+    popping = { f, start: t, landed: false, x: Math.round(LW / 2), y: 158 };
+    arrivalK.textContent = "NOW ENTERING THE JAM";
+    arrivalName.textContent = f.name;
+    arrivalNum.textContent = "FAN #" + String(fanNumber(f.id)).padStart(3, "0");
+    const credit = creditsFor(f.look); arrivalCredit.textContent = credit ? "Wearing designs: " + credit : ""; arrivalCredit.hidden = !credit;
+    arrivalEl.classList.add("show");
+    emptyEl.hidden = true;
+    return;
+  }
+}
+function burst(x, y) {
+  if (reduceMotion) return;
+  const cols = ["#ff3fa4","#3ff0ff","#ffd23f","#7cff6b","#f4f0ff"];
+  for (let i = 0; i < 70; i++) confetti.push({ x, y, vx: rand(-60, 60), vy: rand(-110, -30), c: cols[i % cols.length], life: rand(1.2, 2.2), w: Math.random() < .5 ? 2 : 1 });
+}
+
+/* --- scene painting --- */
+const NEON = ["#ff3fa4","#3ff0ff","#ffd23f","#9b5cff"];
+function rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); }
+function disc(cx, cy, r, c) { ctx.fillStyle = c; for (let y = -r; y <= r; y++) { const w = Math.round(Math.sqrt(r*r - y*y)); ctx.fillRect(cx - w, cy + y, w * 2 + 1, 1); } }
+function hash(a, b, c) { let h = a * 374761393 + b * 668265263 + c * 2147483647; h = (h ^ (h >> 13)) * 1274126177; return (h ^ (h >> 16)) >>> 0; }
+
+function drawWorld(t, beat, bi, bp) {
+  // sky bands with dithered seams
+  const bands = [[0,"#0d0b1e"],[36,"#120d29"],[62,"#181238"],[84,"#1f1745"]];
+  bands.forEach(([y, c], i) => { const ny = bands[i+1] ? bands[i+1][0] : 96; rect(0, y, LW, ny - y, c);
+    if (bands[i+1]) { ctx.fillStyle = bands[i+1][1]; for (let x = 0; x < LW; x += 2) ctx.fillRect(x + ((ny) % 2), ny - 1, 1, 1); } });
+  stars.forEach(s => { const on = Math.sin(t * s.s + s.o) > 0.3; rect(s.x, s.y, 1, 1, on ? "#f4f0ff" : "#4a4290"); });
+
+  const { cx, sw, sx, wall } = geom;
+
+  // floor + tiles
+  rect(0, 92, LW, LH - 92, "#120d2a");
+  for (let row = 0, y = 96; y < LH; row++, y += 8) {
+    for (let col = -1, x = (row % 2) * 8 - 8; x < LW; col++, x += 16) {
+      const lit = (hash(col + 50, row, bi) % 11) === 0;
+      rect(x + 1, y + 1, 14, 6, lit ? shade(NEON[(col + row + bi) & 3], 0.42) : "#19133a");
+    }
+  }
+
+  // truss (behind the screen)
+  rect(sx - 12, 22, sw + 24, 5, "#4a4470");
+  for (let x = sx - 12; x < sx + sw + 12; x += 4) rect(x + ((x >> 2) % 2), 23, 2, 3, "#2b2560");
+  rect(sx - 12, 22, 4, 70, "#4a4470"); rect(sx + sw + 8, 22, 4, 70, "#4a4470");
+
+  // LED wall: a frame with a transparent window; the event banner <img> sits underneath the canvas
+  rect(wall.x - 2, wall.y - 2, wall.w + 4, wall.h + 4, "#3d3480");
+  rect(wall.x - 1, wall.y - 1, wall.w + 2, wall.h + 2, "#0a0718");
+  ctx.clearRect(wall.x, wall.y, wall.w, wall.h);
+
+  // platform
+  rect(sx - 4, 76, sw + 8, 16, "#2b2560"); rect(sx - 4, 76, sw + 8, 2, "#5b50b0"); rect(sx - 4, 88, sw + 8, 4, "#1d1844");
+  for (let x = sx; x < sx + sw; x += 12) rect(x, 82, 6, 1, "#3d3480");
+
+  // speaker stacks: small cabinets on the floor either side of the stage
+  const pump = bp < 0.15 ? 1 : 0;
+  [sx - 26, sx + sw + 14].forEach(x => {
+    rect(x, 72, 12, 20, "#14102a"); rect(x, 72, 12, 1, "#3d3480"); rect(x, 81, 12, 1, "#3d3480");
+    disc(x + 6, 76, 2, "#2b2560"); rect(x + 6, 76, 1, 1, "#4a4470");
+    disc(x + 6, 86, 3 + pump, "#2b2560"); rect(x + 5, 86, 2, 1, "#4a4470");
+  });
+
+  // DJ + booth on the platform, low enough to keep the banner clear
+  const djPose = bi % 2 === 0 ? "up" : "stand";
+  ctx.drawImage(DJ[djPose], cx - 7, 64 + (bp < .4 ? 1 : 0));
+  rect(cx - 18, 76, 36, 11, "#120e24"); rect(cx - 18, 76, 36, 1, "#5b50b0");
+  for (let i = 0; i < 6; i++) rect(cx - 14 + i * 5, 80, 2, 2, (i + bi) % 3 === 0 ? NEON[i & 3] : "#2b2560");
+
+  // light beams
+  const lamps = 6;
+  ctx.save(); ctx.globalCompositeOperation = "lighter";
+  for (let i = 0; i < lamps; i++) {
+    const lx = sx + Math.round((i + 0.5) * sw / lamps);
+    const sweep = reduceMotion ? 0 : Math.sin(t * 0.9 + i * 1.3) * 70;
+    const tx = lx + sweep, c = NEON[(i + Math.floor(bi / 2)) & 3];
+    ctx.globalAlpha = 0.09 + (bp < 0.2 ? 0.05 : 0);
+    ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(lx - 1, 28); ctx.lineTo(lx + 2, 28); ctx.lineTo(tx + 16, LH); ctx.lineTo(tx - 16, LH); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+  for (let i = 0; i < lamps; i++) { const lx = sx + Math.round((i + 0.5) * sw / lamps); rect(lx - 2, 27, 4, 3, NEON[(i + Math.floor(bi / 2)) & 3]); }
+}
+
+function drawSpriteAt(img, x, y, dir, scale) {
+  const w = SW * scale, h = SH * scale;
+  ctx.save(); ctx.translate(Math.round(x), Math.round(y));
+  if (dir < 0) ctx.scale(-1, 1);
+  ctx.drawImage(img, -Math.round(w / 2), -h + scale, w, h);
+  ctx.restore();
+}
+
+let last = performance.now() / 1000;
+function frame() {
+  requestAnimationFrame(frame);
+  if (current !== "stage" || !scene.width) return;
+  const t = performance.now() / 1000; const dt = Math.min(0.05, t - last); last = t;
+  const beat = t * BPM / 60, bi = Math.floor(beat), bp = beat - bi;
+
+  drawWorld(t, beat, bi, bp);
+
+  // walkers
+  walkers.forEach(w => {
+    if (w.state === "walk") {
+      const dx = w.tx - w.x, dy = w.ty - w.y, d = Math.hypot(dx, dy), sp = 16 * dt;
+      if (d <= sp) { w.x = w.tx; w.y = w.ty; w.state = "idle"; w.until = t + rand(3, 9); w.style = Math.floor(Math.random() * 3); }
+      else { w.x += dx / d * sp; w.y += dy / d * sp * 0.7; w.dir = dx < 0 ? -1 : 1; }
+    } else if (t > w.until) {
+      w.state = "walk"; w.tx = rand(14, LW - 14); w.ty = rand(FLOOR_TOP, FLOOR_BOT);
+    }
+  });
+  const order = walkers.slice().sort((a, b) => a.y - b.y);
+  order.forEach(w => {
+    const f = fans.get(w.id); if (!f) return;
+    const s = getSprites(f);
+    let pose = "stand", off = 0;
+    if (w.state === "walk") pose = Math.floor(t / 0.16) % 2 ? "walkA" : "walkB";
+    else {
+      off = bp < 0.35 ? -1 : 0;
+      if (w.style === 1) pose = bi % 2 === 0 ? "up" : "stand";
+      else if (w.style === 2) pose = bi % 2 === 0 ? "walkA" : "walkB";
+    }
+    rect(w.x - 5, w.y, 10, 2, "rgba(5,3,14,.6)");
+    drawSpriteAt(s[pose], w.x, w.y + off, w.dir, 1);
+  });
+
+  // spotlight pop-in
+  if (!popping && queue.length) startPop(t);
+  if (popping) {
+    const p = popping, e = t - p.start, s = getSprites(p.f);
+    ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = 0.16;
+    ctx.fillStyle = "#fff4d6"; ctx.beginPath(); ctx.moveTo(p.x - 6, 0); ctx.lineTo(p.x + 6, 0); ctx.lineTo(p.x + 34, p.y + 2); ctx.lineTo(p.x - 34, p.y + 2); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 0.22; ctx.beginPath(); ctx.ellipse(p.x, p.y, 34, 7, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    let y = p.y, scale = 3, pose = "up";
+    if (e < 0.6) { const k = e / 0.6; y = p.y - (1 - k * k) * 170; pose = "stand"; }
+    else {
+      if (!p.landed) { p.landed = true; burst(p.x, p.y - 30); }
+      const b = e - 0.6; if (b < 0.25) y = p.y - Math.round(Math.sin(b / 0.25 * Math.PI) * 6);
+      pose = bi % 2 === 0 ? "up" : "stand";
+      if (bp < 0.3) y -= 2;
+    }
+    if (e > POP_DUR - 0.5) { const k = (e - (POP_DUR - 0.5)) / 0.5; scale = Math.max(1, Math.round(3 - k * 2)); }
+    drawSpriteAt(s[pose], p.x, y, 1, scale);
+    if (e > POP_DUR) {
+      if (p.piece) sprites.delete(p.f.id); else addToFloor(p.f, p.x, Math.min(FLOOR_BOT, p.y));
+      arrivalEl.classList.remove("show");
+      popping = null; refreshHud();
+    }
+  }
+
+  // confetti
+  confetti = confetti.filter(c => (c.life -= dt) > 0);
+  confetti.forEach(c => { c.vy += 140 * dt; c.x += c.vx * dt; c.y += c.vy * dt; rect(c.x, c.y, c.w, 1, c.c); });
+}
+
+/* ===================== STATION ===================== */
+let look = randomLook();
+const optionsEl = document.getElementById("options");
+const previewEl = document.getElementById("preview");
+const nameEl = document.getElementById("fan-name"), sendBtn = document.getElementById("send"), errEl = document.getElementById("send-err");
+const groupEls = {};
+
+function placePop(b) {
+  const box = optionsEl.getBoundingClientRect(), r = b.getBoundingClientRect();
+  b.classList.toggle("flip", r.right + 230 > box.right && r.left - 230 > box.left);
+}
+function buildOptions() {
+  GROUPS.forEach(gr => {
+    const wrap = document.createElement("div"); wrap.className = "group";
+    const h = document.createElement("h3"); h.textContent = gr.label; h.id = "g-" + gr.key;
+    const chips = document.createElement("div"); chips.className = "chips"; chips.setAttribute("role", "group"); chips.setAttribute("aria-labelledby", h.id);
+    gr.options.forEach((opt, i) => {
+      const b = document.createElement("button"); b.type = "button"; b.id = "opt-" + gr.key + "-" + i;
+      if (gr.type === "color") { b.className = "swatch"; b.style.background = opt; b.setAttribute("aria-label", gr.label.toLowerCase() + " " + (i + 1)); }
+      else {
+        b.className = "spr"; const c = document.createElement("canvas"); c.width = SW; c.height = SH;
+        const pop = document.createElement("span"); pop.className = "pop"; pop.setAttribute("aria-hidden", "true");
+        const nm = document.createElement("b"); nm.textContent = labelOf(opt); pop.append(nm);
+        let aria = labelOf(opt);
+        if (isComm(opt)) {
+          b.classList.add("comm");
+          const by = document.createElement("i"); by.textContent = "by " + creditName(opt); pop.append(by);
+          aria += ", community design by " + creditName(opt);
+        }
+        b.setAttribute("aria-label", aria); b.append(c, pop);
+        b.addEventListener("pointerenter", () => placePop(b));
+        b.addEventListener("focus", () => placePop(b));
+        b.addEventListener("pointerdown", ev => {
+          if (ev.pointerType === "mouse") return;
+          placePop(b);
+          document.querySelectorAll(".spr.peek").forEach(x => { if (x !== b) x.classList.remove("peek"); });
+          b.classList.add("peek"); clearTimeout(b._peek); b._peek = setTimeout(() => b.classList.remove("peek"), 1800);
+        });
+      }
+      b.addEventListener("click", () => { look[gr.key] = gr.type === "color" ? i : opt; syncOptions(); });
+      chips.append(b);
+    });
+    wrap.append(h, chips); optionsEl.append(wrap); groupEls[gr.key] = chips;
+  });
+}
+let previewSet = spriteSet(look);
+function syncOptions() {
+  GROUPS.forEach(gr => {
+    [...groupEls[gr.key].children].forEach((b, i) => {
+      const val = gr.type === "color" ? i : gr.options[i];
+      b.setAttribute("aria-pressed", String(look[gr.key] === val));
+      if (gr.type === "sprite") paintSprite(b.querySelector("canvas"), buildSprite({ ...look, [gr.key]: val }, "stand"));
+    });
+    if (gr.for) { const on = colourUsed(gr, look); groupEls[gr.key].parentElement.classList.toggle("off", !on); [...groupEls[gr.key].children].forEach(b => b.disabled = !on); }
+  });
+  previewSet = spriteSet(look);
+}
+function previewLoop() {
+  requestAnimationFrame(previewLoop);
+  if (current !== "station") return;
+  const t = performance.now() / 1000, beat = t * BPM / 60, bi = Math.floor(beat), bp = beat - bi;
+  const phase = Math.floor(bi / 4) % 2;
+  const pose = phase === 0 ? (bi % 2 ? "up" : "stand") : (Math.floor(t / 0.16) % 2 ? "walkA" : "walkB");
+  const x = previewEl.getContext("2d"); x.imageSmoothingEnabled = false;
+  x.clearRect(0, 0, previewEl.width, previewEl.height);
+  const off = phase === 0 && bp < 0.35 ? -12 : 0;
+  x.fillStyle = "rgba(5,3,14,.6)"; x.fillRect(24, 262, 120, 12);
+  x.drawImage(previewSet[pose], 0, off, previewEl.width, previewEl.height);
+}
+
+function updateSend() { sendBtn.disabled = !cleanName(nameEl.value) || !store; }
+nameEl.addEventListener("input", () => { errEl.hidden = true; updateSend(); });
+document.getElementById("shuffle").addEventListener("click", () => { look = randomLook(); syncOptions(); });
+
+const doneEl = document.getElementById("done"), doneSprite = document.getElementById("done-sprite"), doneTimer = document.getElementById("done-timer");
+let resetTimer = 0;
+function resetStation() {
+  clearInterval(resetTimer); doneEl.hidden = true;
+  nameEl.value = ""; look = randomLook(); syncOptions(); updateSend();
+}
+document.getElementById("next-guest").addEventListener("click", resetStation);
+
+document.getElementById("make-form").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const name = cleanName(nameEl.value);
+  if (!name || !store) return;
+  sendBtn.disabled = true; sendBtn.textContent = "SENDING…"; errEl.hidden = true;
+  try {
+    await store.add({ name, look: sanitizeLook(look), createdAt: Date.now() });
+    document.getElementById("done-title").textContent = name + ", YOU'RE ON STAGE!";
+    paintSprite(doneSprite, previewSet.up);
+    doneEl.hidden = false;
+    let left = 8; doneTimer.textContent = "Resetting in " + left + "s";
+    resetTimer = setInterval(() => { left--; doneTimer.textContent = "Resetting in " + left + "s"; if (left <= 0) resetStation(); }, 1000);
+  } catch (e) {
+    const code = e && e.code;
+    errEl.textContent = code === "permission_denied" || code === "not_granted"
+      ? "This account can't send characters. Ask the organiser for edit access to this page."
+      : code === "quota_exceeded" ? "The stage is full (database limit reached). Remove some old characters below."
+      : code === "invalid" ? "That name didn't go through. Use letters and numbers only."
+      : "Couldn't reach the stage. Check the connection and tap Send again.";
+    errEl.hidden = false;
+  } finally { sendBtn.textContent = "SEND TO STAGE"; updateSend(); }
+});
+
+const recentEl = document.getElementById("recent");
+function fmtTime(ms) { if (!ms) return ""; const d = new Date(ms); return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+function renderRecent(list) {
+  recentEl.replaceChildren();
+  if (!list.length) { const li = document.createElement("li"); li.className = "none"; li.textContent = "Nobody yet. The first guest gets the spotlight."; recentEl.append(li); return; }
+  list.forEach(f => {
+    const li = document.createElement("li");
+    const c = document.createElement("canvas"); c.width = SW; c.height = SH; paintSprite(c, buildSprite(f.look, "stand"));
+    const n = document.createElement("span"); n.className = "nm"; n.textContent = f.name;
+    const tm = document.createElement("span"); tm.className = "tm"; tm.textContent = fmtTime(f.createdAt);
+    const rm = document.createElement("button"); rm.type = "button"; rm.className = "rm"; rm.textContent = "Remove";
+    if (store.canRemove && !store.canRemove(f.id)) rm.hidden = true;
+    rm.addEventListener("click", async () => {
+      if (!rm.classList.contains("armed")) { rm.classList.add("armed"); rm.textContent = "Confirm remove"; setTimeout(() => { rm.classList.remove("armed"); rm.textContent = "Remove"; }, 3000); return; }
+      rm.disabled = true; rm.textContent = "Removing…";
+      try { await store.remove(f.id); } catch (e) { rm.disabled = false; rm.textContent = "Couldn't remove"; }
+    });
+    li.append(c, n, tm, rm); recentEl.append(li);
+  });
+}
+let lastRecent = [];
+function startStationFeed() { store.subscribeRecent(list => { lastRecent = list; renderRecent(list); }, () => {}); updateSend(); }
+
+/* ===================== ORGANISER PANEL (hidden) ===================== */
+const adminEl = document.getElementById("admin"), adminList = document.getElementById("admin-list"), adminStats = document.getElementById("admin-stats");
+const adminKeyForm = document.getElementById("admin-key"), adminKeyIn = document.getElementById("admin-key-in"), adminKeyMsg = document.getElementById("admin-key-msg");
+const adminMain = document.getElementById("admin-main"), adminLock = document.getElementById("admin-lock");
+const tabEntries = document.getElementById("tab-entries"), tabFans = document.getElementById("tab-fans");
+const SEEN_STORE = "amj26-live-seen";
+let adminOpen = false, adminTab = "entries", entries = [], entriesErr = "", adminTimer = 0, adminLoading = false;
+let seen = new Set(); try { seen = new Set(JSON.parse(lsGet(SEEN_STORE) || "[]")); } catch (e) {}
+const busy = new Set();
+
+function drawPiece(canvas, pixels) {
+  canvas.width = 12; canvas.height = 21;
+  const x = canvas.getContext("2d");
+  for (let i = 0; i < 252; i++) {
+    const ch = pixels[i]; if (!ch || ch === ".") continue;
+    const k = "0123456789abcdef".indexOf(ch);
+    x.fillStyle = SKIN_SLOTS.has(k) ? SKIN[1] : APPAREL.palette[k]; x.fillRect(i % 12, Math.floor(i / 12), 1, 1);
+  }
+}
+const CAT_LABEL = { hair: "Hair", top: "Top", bottom: "Bottoms", accessory: "Accessory" };
+function fmtWhen(ms) { if (!ms) return ""; const d = new Date(ms); return d.toLocaleDateString([], { day: "numeric", month: "short" }) + " " + fmtTime(ms); }
+
+async function loadEntries() {
+  if (!adminKey || adminLoading) return;
+  adminLoading = true;
+  try {
+    const j = await sheetGet({ key: adminKey });
+    entries = (j.entries || []).filter(d => typeof d.pixels === "string" && d.pixels.length === 252).sort((a, b) => b.createdAt - a.createdAt);
+    entriesErr = "";
+  } catch (e) {
+    if (e.code === "unauthorized") { adminKey = ""; lsSet(ADMIN_KEY_STORE, null); adminKeyMsg.textContent = "That key didn't work."; }
+    else entriesErr = "Couldn't reach the Google Sheet. Retrying…";
+  } finally { adminLoading = false; }
+  renderAdmin();
+}
+
+function renderAdmin() {
+  if (!adminOpen) return;
+  const locked = !adminKey;
+  adminKeyForm.hidden = !locked; adminMain.hidden = locked; adminLock.hidden = locked;
+  if (locked) return;
+  const featured = entries.filter(d => d.featured).length, fresh = entries.filter(d => !seen.has(d.id)).length;
+  adminStats.replaceChildren();
+  [["COSTUMES", entries.length], ["FEATURED", featured], ["NEW", fresh], ["FANS", fans.size]].forEach(([k, v]) => {
+    const sp = document.createElement("span"); const b = document.createElement("b"); b.textContent = v; sp.append(k.toLowerCase() + " ", b); adminStats.append(sp);
+  });
+  tabEntries.setAttribute("aria-selected", String(adminTab === "entries")); tabFans.setAttribute("aria-selected", String(adminTab === "fans"));
+  adminList.replaceChildren();
+  const msg = t => { const m = document.createElement("p"); m.className = "admin-msg"; m.textContent = t; adminList.append(m); };
+  if (adminTab === "entries") {
+    if (entriesErr) msg(entriesErr);
+    if (!entries.length) { msg(entriesErr ? "" : "No costume entries yet. They appear here as the form is submitted."); return; }
+    entries.forEach(d => {
+      const row = document.createElement("div"); row.className = "admin-row" + (d.featured ? " feat" : "");
+      const c = document.createElement("canvas"); drawPiece(c, d.pixels);
+      const info = document.createElement("div");
+      const t = document.createElement("div"); t.className = "t"; t.textContent = d.title;
+      if (!seen.has(d.id)) { const n = document.createElement("span"); n.className = "new"; n.textContent = "NEW"; t.append(n); }
+      const m1 = document.createElement("div"); m1.className = "m"; m1.textContent = (CAT_LABEL[d.category] || d.category) + " · by " + d.name;
+      const m2 = document.createElement("div"); m2.className = "m"; m2.textContent = [d.contact, fmtWhen(d.createdAt)].filter(Boolean).join(" · ");
+      info.append(t, m1, m2);
+      const b = document.createElement("button"); b.type = "button";
+      b.setAttribute("aria-pressed", String(!!d.featured)); b.textContent = busy.has(d.id) ? "SAVING…" : d.featured ? "FEATURED" : "FEATURE";
+      b.disabled = busy.has(d.id);
+      b.addEventListener("click", () => setFeatured(d, !d.featured));
+      row.append(c, info, b); adminList.append(row);
+    });
+  } else {
+    const list = [...fans.values()].sort((a, b) => b.createdAt - a.createdAt).slice(0, 80);
+    if (!list.length) { msg("No fans on the floor yet."); return; }
+    list.forEach(f => {
+      const row = document.createElement("div"); row.className = "admin-row";
+      const c = document.createElement("canvas"); c.width = SW; c.height = SH; paintSprite(c, buildSprite(f.look, "stand"));
+      const info = document.createElement("div");
+      const t = document.createElement("div"); t.className = "t"; t.textContent = f.name;
+      const m = document.createElement("div"); m.className = "m"; m.textContent = "#" + String(fanNumber(f.id)).padStart(3, "0") + " · " + fmtWhen(f.createdAt);
+      const cr = creditsFor(f.look); info.append(t, m);
+      if (cr) { const m2 = document.createElement("div"); m2.className = "m"; m2.textContent = cr; info.append(m2); }
+      const b = document.createElement("button"); b.type = "button"; b.textContent = "REMOVE";
+      b.addEventListener("click", async () => {
+        if (!b.classList.contains("armed")) { b.classList.add("armed"); b.textContent = "CONFIRM"; setTimeout(() => { b.classList.remove("armed"); b.textContent = "REMOVE"; }, 3000); return; }
+        b.disabled = true; b.textContent = "…";
+        try { await store.remove(f.id); renderAdmin(); } catch (e) { b.disabled = false; b.textContent = "FAILED"; }
+      });
+      row.append(c, info, b); adminList.append(row);
+    });
+  }
+}
+
+async function setFeatured(d, on) {
+  busy.add(d.id); renderAdmin();
+  try {
+    await sheetPost({ action: "feature", key: adminKey, id: d.id, featured: on });
+    d.featured = on;
+    await refreshPieces();
+  } catch (e) { entriesErr = e.code === "unauthorized" ? "The admin key was rejected." : "Couldn't save. Try again."; }
+  busy.delete(d.id); renderAdmin();
+}
+
+function markSeen() { entries.forEach(d => seen.add(d.id)); lsSet(SEEN_STORE, JSON.stringify([...seen].slice(-2000))); }
+function openAdmin() {
+  if (adminOpen) return;
+  adminOpen = true; adminEl.hidden = false; adminKeyMsg.textContent = "";
+  renderAdmin(); loadEntries();
+  clearInterval(adminTimer); adminTimer = setInterval(() => { loadEntries(); }, 10000);
+  if (!adminKey) adminKeyIn.focus();
+}
+function closeAdmin() {
+  if (!adminOpen) return;
+  markSeen(); adminOpen = false; adminEl.hidden = true; clearInterval(adminTimer);
+}
+let hotTaps = 0, hotTimer = 0;
+document.getElementById("admin-hot").addEventListener("click", () => {
+  clearTimeout(hotTimer);
+  if (++hotTaps < 6) { hotTimer = setTimeout(() => { hotTaps = 0; }, 1500); return; }
+  hotTaps = 0; openAdmin();
+});
+addEventListener("keydown", ev => {
+  const typing = ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement;
+  if (ev.key === "Escape" && adminOpen) { closeAdmin(); return; }
+  if (!typing && ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey && (ev.key === "A" || ev.key === "a")) { ev.preventDefault(); adminOpen ? closeAdmin() : openAdmin(); }
+});
+document.getElementById("admin-close").addEventListener("click", closeAdmin);
+document.getElementById("admin-refresh").addEventListener("click", () => { loadEntries(); refreshPieces(); });
+adminLock.addEventListener("click", () => { adminKey = ""; lsSet(ADMIN_KEY_STORE, null); entries = []; renderAdmin(); if (lastRecent.length) renderRecent(lastRecent); });
+adminKeyForm.addEventListener("submit", ev => {
+  ev.preventDefault();
+  const k = adminKeyIn.value.trim(); adminKeyIn.value = "";
+  if (!k) return;
+  adminKey = k; lsSet(ADMIN_KEY_STORE, k); adminKeyMsg.textContent = "";
+  renderAdmin(); loadEntries();
+  if (lastRecent.length) renderRecent(lastRecent);
+});
+tabEntries.addEventListener("click", () => { adminTab = "entries"; renderAdmin(); });
+tabFans.addEventListener("click", () => { adminTab = "fans"; renderAdmin(); });
+
+/* ===== boot ===== */
+buildOptions(); syncOptions();
+route();
+requestAnimationFrame(frame);
+requestAnimationFrame(previewLoop);
+initStore();
+if (SHEET_URL) { refreshPieces(); setInterval(refreshPieces, 30000); }
+})();
+</script>
+
+</body></html>
