@@ -272,9 +272,51 @@ button { cursor: pointer; }
 .admin-row button.armed { border-color: var(--hot); color: var(--hot); }
 .admin-row button:disabled { opacity: .5; cursor: wait; }
 
+/* ---------- Stage interaction: drag + speech bubbles ---------- */
+#scene { touch-action: none; }
+#scene.grab { cursor: grab; }
+#scene.held { cursor: grabbing; }
+.bubbles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.bubble {
+  position: absolute; left: 0; top: 0; max-width: min(340px, 40vw);
+  background: var(--ink); color: var(--shadow); border: 3px solid var(--shadow);
+  box-shadow: 4px 4px 0 var(--shadow); padding: 6px 10px 8px;
+  font-size: clamp(18px, 1.6vw, 26px); line-height: 1.05; overflow-wrap: anywhere;
+  transform-origin: 50% 100%; animation: pop-in .18s steps(3);
+}
+.bubble .who { display: block; font-family: var(--font-display); font-size: clamp(7px, .7vw, 10px); color: var(--hot); letter-spacing: .08em; margin-bottom: 4px; }
+.bubble::after { content: ""; position: absolute; left: var(--tail, 50%); bottom: -11px; width: 10px; height: 10px;
+  background: var(--ink); border-right: 3px solid var(--shadow); border-bottom: 3px solid var(--shadow); transform: translateX(-50%) rotate(45deg); }
+.bubble.out { animation: pop-out .2s steps(3) forwards; }
+@keyframes pop-in { from { transform: scale(.4); opacity: 0; } }
+@keyframes pop-out { to { transform: scale(.4); opacity: 0; } }
+.arrival .m { font-size: clamp(19px, 1.7vw, 26px); color: var(--ink); margin-top: 6px; overflow-wrap: anywhere; }
+
+/* ---------- Guest phones (#join): no screen switcher, no shared list ---------- */
+body.guest .nav, body.guest .recent { display: none; }
+body.guest .station-wrap { padding-top: 24px; }
+.field label small { font-family: var(--font-body); font-size: 17px; color: var(--muted); letter-spacing: 0; }
+#fan-msg { width: 100%; background: var(--shadow); border: 3px solid var(--line); padding: 10px 12px; font-size: 22px; }
+#fan-msg:focus { border-color: var(--hot); outline: none; }
+.done .status { color: var(--ink); font-size: 22px; }
+.done .status.ok { color: var(--lime); }
+.done .status.bad { color: var(--hot); }
+
+/* ---------- Review queue (organiser panel) ---------- */
+.admin-row .say { font-size: 20px; color: var(--gold); overflow-wrap: anywhere; margin-top: 2px; }
+.admin-row .acts { display: grid; gap: 6px; }
+.admin-row button.ok { background: var(--lime); color: var(--shadow); border-color: var(--lime); }
+.admin-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px; border: 2px dashed var(--line); }
+.admin-toggle span { font-size: 18px; color: var(--muted); }
+.admin-toggle button { font-family: var(--font-display); font-size: 9px; padding: 8px 10px; background: var(--shadow); border: 2px solid var(--line); color: var(--muted); flex: none; }
+.admin-toggle button[aria-pressed="true"] { background: var(--gold); color: var(--shadow); border-color: var(--gold); }
+.admin-tabs .count { color: var(--gold); }
+.admin-tabs button[aria-selected="true"] .count { color: var(--shadow); }
+
 @media (prefers-reduced-motion: reduce) {
   .ticker-track { animation: none; }
   .arrival { transition: none; }
+  .bubble, .bubble.out { animation: none; }
 }
 </style>
 
@@ -287,7 +329,7 @@ button { cursor: pointer; }
 
 <div class="banner" id="banner" hidden></div>
 
-<!-- Organisers: tap the bottom-right corner 6 times (or press Shift+A) -->
+<!-- Organisers: open index.html#crew on your own phone, or tap the bottom-right corner 6 times (or press Shift+A) -->
 <button type="button" class="admin-hot" id="admin-hot" tabindex="-1" aria-hidden="true"></button>
 <aside class="admin" id="admin" aria-label="Organiser panel" hidden>
   <div class="admin-head">
@@ -305,7 +347,8 @@ button { cursor: pointer; }
   <div id="admin-main" hidden style="display:contents">
     <div class="admin-stats" id="admin-stats"></div>
     <div class="admin-tabs" role="tablist">
-      <button type="button" role="tab" id="tab-entries" aria-selected="true">COSTUMES</button>
+      <button type="button" role="tab" id="tab-queue" aria-selected="true">QUEUE <span class="count" id="queue-count"></span></button>
+      <button type="button" role="tab" id="tab-entries" aria-selected="false">COSTUMES</button>
       <button type="button" role="tab" id="tab-fans" aria-selected="false">FANS</button>
     </div>
     <div class="admin-body" id="admin-list" role="tabpanel"></div>
@@ -314,8 +357,9 @@ button { cursor: pointer; }
 
 <!-- ============ STAGE ============ -->
 <section class="view" id="stage" aria-label="Live stage">
-  <img id="backdrop" class="backdrop" src="backdrop.jpg" alt="Marsiling's Arts &amp; Music Jam 2026: Sat 21 November, 6–9pm, 908A Woodlands Square">
+  <img id="backdrop" class="backdrop" src="banner.jpg" alt="Marsiling's Arts &amp; Music Jam 2026: Discover. Connect. Create!">
   <canvas id="scene"></canvas>
+  <div class="bubbles" id="bubbles" aria-hidden="true"></div>
   <div class="hud-count" aria-live="polite">
     <span class="label">FANS ON THE FLOOR</span>
     <span class="num" id="count">000</span>
@@ -329,6 +373,7 @@ button { cursor: pointer; }
     <div class="k" id="arrival-k">NOW ENTERING THE JAM</div>
     <div class="n" id="arrival-name">—</div>
     <div class="f" id="arrival-num">FAN #000</div>
+    <div class="m" id="arrival-msg" hidden></div>
     <div class="c" id="arrival-credit" hidden></div>
   </div>
   <div class="ticker">
@@ -351,6 +396,9 @@ button { cursor: pointer; }
         <label for="fan-name">YOUR NAME</label>
         <input id="fan-name" name="fan-name" maxlength="12" placeholder="PLAYER 1" spellcheck="false">
         <span class="hint">Up to 12 letters or numbers. This shows on the big screen.</span>
+        <label for="fan-msg" style="margin-top:10px">SAY SOMETHING <small>(optional)</small></label>
+        <input id="fan-msg" name="fan-msg" maxlength="48" placeholder="Hello Marsiling!" spellcheck="false">
+        <span class="hint">Pops up in a speech bubble when someone taps your character. The crew checks every message first.</span>
         <div class="btn-row" style="margin-top:10px">
           <button type="button" class="btn" id="shuffle">SHUFFLE</button>
           <button type="submit" class="btn go" id="send" disabled>SEND TO STAGE</button>
@@ -371,7 +419,8 @@ button { cursor: pointer; }
     <div class="card">
       <h2 id="done-title">YOU'RE ON STAGE!</h2>
       <canvas id="done-sprite" width="112" height="184"></canvas>
-      <p>Look up at the big screen. Your character is dropping in now.</p>
+      <p id="done-text">Look up at the big screen. Your character is dropping in now.</p>
+      <p class="status" id="done-status" aria-live="polite" hidden></p>
       <button type="button" class="btn go" id="next-guest">NEXT GUEST</button>
       <span class="hint" id="done-timer">Resetting in 8s</span>
     </div>
@@ -385,6 +434,13 @@ button { cursor: pointer; }
 /* ===== Festival config — rename here ===== */
 const FESTIVAL = "LIVE @ ARTS & MUSIC JAM";
 const BPM = 124;
+/* Screens (same page, picked by the link):
+     #stage    big screen            #station  booth tablet (resets itself after each guest)
+     #join     guests' own phones    #crew     organiser review queue on a separate phone
+   Print card.html for the booth: it carries the #join link (and a QR on paper only). */
+const CHAT_EVERY = 7;     // seconds between characters on the floor saying their message by themselves (0 = off)
+const BUBBLE_SECS = 6;    // how long a speech bubble stays up
+const MSG_MAX = 48;
 document.getElementById("hud-title").textContent = FESTIVAL;
 
 /* ===== Palettes (stored as indices so the stage never trusts raw colours) ===== */
@@ -496,9 +552,14 @@ function sanitizeLook(l) {
 function cleanName(s) {
   return String(s || "").toUpperCase().replace(/[^A-Z0-9 ]/g, "").replace(/\s+/g, " ").trim().slice(0, 12);
 }
+function cleanMsg(s) {
+  return String(s || "").replace(/[\u0000-\u001f\u007f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, MSG_MAX);
+}
 function sanitizeFan(id, d) {
   d = d || {};
-  return { id, name: cleanName(d.name) || "FAN", look: sanitizeLook(d.look), raw: d.look, createdAt: Number(d.createdAt) || 0 };
+  const createdAt = Number(d.createdAt) || 0;
+  return { id, name: cleanName(d.name) || "FAN", look: sanitizeLook(d.look), raw: d.look, message: cleanMsg(d.message),
+    createdAt, shownAt: Number(d.shownAt) || createdAt };
 }
 function randomLook() {
   const r = a => Math.floor(Math.random() * a.length);
@@ -670,7 +731,8 @@ async function sheetPost(body) {
 }
 
 function sheetStore() {
-  const POLL_MS = 5000;
+  // the big screen polls fast; tablets and phones only need the short "recent" list
+  const pollMs = () => (current === "stage" ? 4000 : 15000) * (document.hidden ? 3 : 1);
   const list = new Map();          // id -> fan
   const all = new Set(), recent = new Set();
   let tokens = {}; try { tokens = JSON.parse(lsGet(TOKEN_STORE) || "{}") || {}; } catch (e) { tokens = {}; }
@@ -698,16 +760,27 @@ function sheetStore() {
     } catch (e) {
       if (++fails >= 3) { banner.textContent = "Can't reach the live feed. This screen keeps trying."; banner.dataset.src = "sheet"; banner.hidden = false; }
     }
-    timer = setTimeout(poll, document.hidden ? POLL_MS * 3 : POLL_MS);
+    timer = setTimeout(poll, pollMs());
   }
   poll();
   return {
     subscribeAll(next) { all.add(next); if (loaded) next([...list.values()], [], { fromCache: false }); return () => all.delete(next); },
     subscribeRecent(next) { recent.add(next); next(recentList()); return () => recent.delete(next); },
+    refresh: () => poll(),
     async add(data) {
-      const j = await sheetPost({ action: "fan", name: data.name, look: data.look });
+      const j = await sheetPost({ action: "fan", name: data.name, look: data.look, message: data.message || "" });
       tokens[j.id] = j.token; lsSet(TOKEN_STORE, JSON.stringify(tokens));
-      if (!list.has(j.id)) { const fan = sanitizeFan(j.id, { ...data, createdAt: j.createdAt }); list.set(fan.id, fan); if (loaded) emit([{ type: "added", fan }]); }
+      // older backends have no review step and send no status: treat as approved
+      const status = j.status === "pending" ? "pending" : "approved";
+      if (status === "approved" && !list.has(j.id)) {
+        const fan = sanitizeFan(j.id, { ...data, createdAt: j.createdAt, shownAt: j.createdAt }); list.set(fan.id, fan); if (loaded) emit([{ type: "added", fan }]);
+      }
+      return { id: j.id, status };
+    },
+    async status(id) {
+      if (!tokens[id]) return "unknown";
+      const j = await sheetGet({ action: "mine", id, token: tokens[id] });
+      return String(j.status || "unknown");
     },
     canRemove: id => !!tokens[id] || !!adminKey,
     async remove(id) {
@@ -759,10 +832,13 @@ async function initStore() {
 const views = { stage: document.getElementById("stage"), station: document.getElementById("station") };
 const navStage = document.getElementById("nav-stage"), navStation = document.getElementById("nav-station");
 const fsBtn = document.getElementById("fs-btn");
-let current = "stage";
+let current = "stage", guest = false;
 function route() {
   const h = (location.hash || "").replace("#", "");
-  current = h === "station" ? "station" : "stage";
+  current = h === "station" || h === "join" || h === "crew" ? "station" : "stage";
+  guest = h === "join" || h === "crew";
+  document.body.classList.toggle("guest", guest);
+  if (h === "crew") { adminTab = "queue"; setTimeout(openAdmin, 0); }
   views.stage.hidden = current !== "stage";
   views.station.hidden = current !== "station";
   navStage.toggleAttribute("aria-current", false); navStation.toggleAttribute("aria-current", false);
@@ -793,13 +869,15 @@ const ctx = scene.getContext("2d");
 const LH = 180; let LW = 320;
 const FLOOR_TOP = 104, FLOOR_BOT = 168;
 let stars = [];
+const view = { kx: 1, ky: 1, w: 0 };
 const backdrop = document.getElementById("backdrop");
-const BANNER_RATIO = 2400 / 532;
+const BANNER_RATIO = 1775 / 344;
 function stageGeom() {
   const cx = Math.round(LW / 2), sw = Math.round(Math.min(230, LW * 0.62)), sx = cx - Math.round(sw / 2);
-  const w = sw - 8, h = Math.min(49, Math.round(w / BANNER_RATIO));
+  // wall sits between the lamps (y 30) and the DJ's head (y 66), so only the banner's bottom rule hides behind the DJ
+  const w = sw - 8, h = Math.min(40, Math.round(w / BANNER_RATIO));
   const ww = Math.round(h * BANNER_RATIO);
-  return { cx, sw, sx, wall: { x: cx - Math.round(ww / 2), y: 76 - h, w: ww, h } };
+  return { cx, sw, sx, wall: { x: cx - Math.round(ww / 2), y: 72 - h, w: ww, h } };
 }
 let geom = stageGeom();
 function resizeScene() {
@@ -810,6 +888,7 @@ function resizeScene() {
   ctx.imageSmoothingEnabled = false;
   geom = stageGeom();
   const kx = r.width / LW, ky = r.height / LH, w = geom.wall;
+  view.kx = kx; view.ky = ky; view.w = r.width;
   Object.assign(backdrop.style, { left: w.x * kx + "px", top: w.y * ky + "px", width: w.w * kx + "px", height: w.h * ky + "px" });
   stars = Array.from({ length: Math.round(LW / 5) }, () => ({ x: Math.floor(Math.random() * LW), y: Math.floor(Math.random() * 64), s: Math.random() * 3 + 1, o: Math.random() * 6 }));
   walkers.forEach(w => { w.x = Math.min(w.x, LW - 12); w.tx = Math.min(w.tx, LW - 12); });
@@ -868,11 +947,16 @@ function startStageFeed() {
       [...fans.values()].sort((a,b) => a.createdAt - b.createdAt).slice(-MAX_ON_FLOOR).forEach(f => addToFloor(f));
     } else {
       changes.forEach(({ type, fan }) => {
-        if (type === "removed") { fans.delete(fan.id); walkers = walkers.filter(w => w.id !== fan.id); sprites.delete(fan.id); return; }
+        if (type === "removed") {
+          fans.delete(fan.id); walkers = walkers.filter(w => w.id !== fan.id); sprites.delete(fan.id);
+          if (held && held.w.id === fan.id) held = null;
+          hush(fan.id); return;
+        }
         const isNew = !fans.has(fan.id);
         fans.set(fan.id, fan); sprites.delete(fan.id);
         if (type === "added" && isNew) {
-          if (fan.createdAt > Math.max(pageLoad, Date.now()) - 30000) queue.push(fan.id);
+          // shownAt = when the crew approved it, so late approvals still get the spotlight
+          if (fan.shownAt > Math.max(pageLoad, Date.now()) - 60000) queue.push(fan.id);
           else addToFloor(fan);
         }
       });
@@ -882,7 +966,7 @@ function startStageFeed() {
   }, () => { clearTimeout(loadTimer); banner.textContent = "The live feed stopped. Reload this screen to reconnect."; banner.hidden = false; });
 }
 
-const arrivalCredit = document.getElementById("arrival-credit"), arrivalK = document.getElementById("arrival-k");
+const arrivalCredit = document.getElementById("arrival-credit"), arrivalK = document.getElementById("arrival-k"), arrivalMsg = document.getElementById("arrival-msg");
 const SLOT_OF_KIND = { hair: "hairStyle", top: "outfit", bottom: "bottom", accessory: "gear" };
 const MODEL_LOOK = { skin:1, hair:0, shirt:6, pants:0, acc:0, hairStyle:"short", outfit:"tee", bottom:"pants", gear:"none" };
 const arrivalEl = document.getElementById("arrival"), arrivalName = document.getElementById("arrival-name"), arrivalNum = document.getElementById("arrival-num");
@@ -900,6 +984,7 @@ function startPop(t) {
       arrivalName.textContent = p.title.toUpperCase();
       arrivalNum.textContent = "by " + creditName(item.piece);
       arrivalCredit.textContent = "Wear it now at the character station"; arrivalCredit.hidden = false;
+      arrivalMsg.hidden = true;
       arrivalEl.classList.add("show");
       emptyEl.hidden = true;
       return;
@@ -911,6 +996,7 @@ function startPop(t) {
     arrivalName.textContent = f.name;
     arrivalNum.textContent = "FAN #" + String(fanNumber(f.id)).padStart(3, "0");
     const credit = creditsFor(f.look); arrivalCredit.textContent = credit ? "Wearing designs: " + credit : ""; arrivalCredit.hidden = !credit;
+    arrivalMsg.textContent = f.message ? "“" + f.message + "”" : ""; arrivalMsg.hidden = !f.message;
     arrivalEl.classList.add("show");
     emptyEl.hidden = true;
     return;
@@ -996,6 +1082,113 @@ function drawSpriteAt(img, x, y, dir, scale) {
   ctx.restore();
 }
 
+/* --- speech bubbles (HTML over the canvas so text stays sharp) --- */
+const bubbleLayer = document.getElementById("bubbles");
+const bubbles = [];               // { id, el, until }
+const lastSaid = new Map();       // id -> time last spoken, so chatter rotates through everyone
+const CHEERS = ["♪ ♪ ♪", "WOOO!", "LET'S JAM!"];
+let nextChat = 0;
+const nowS = () => performance.now() / 1000;
+const bubbleFor = id => bubbles.find(b => b.id === id);
+function dropBubble(b, instant) {
+  const i = bubbles.indexOf(b); if (i >= 0) bubbles.splice(i, 1);
+  if (instant || reduceMotion) { b.el.remove(); return; }
+  b.el.classList.add("out"); setTimeout(() => b.el.remove(), 240);
+}
+function hush(id, instant) { bubbles.filter(b => b.id === id).forEach(b => dropBubble(b, instant)); }
+function say(id, text, secs) {
+  const f = fans.get(id); if (!f || !text) return;
+  hush(id, true);
+  while (bubbles.length >= 3) dropBubble(bubbles[0]);
+  const el = document.createElement("div"); el.className = "bubble";
+  const who = document.createElement("span"); who.className = "who";
+  who.textContent = "#" + String(fanNumber(id)).padStart(3, "0") + " " + f.name;
+  el.append(who, document.createTextNode(text));
+  bubbleLayer.append(el);
+  bubbles.push({ id, el, until: nowS() + secs });
+  lastSaid.set(id, nowS());
+}
+function placeBubbles(t) {
+  bubbles.slice().forEach(b => {
+    const w = walkers.find(x => x.id === b.id);
+    if (!w || t > b.until) { dropBubble(b); return; }
+    const bw = b.el.offsetWidth, bh = b.el.offsetHeight;
+    const sx = w.x * view.kx, sy = (w.y - 24) * view.ky;
+    const left = Math.max(8, Math.min(view.w - bw - 8, sx - bw / 2));
+    b.el.style.left = Math.round(left) + "px";
+    b.el.style.top = Math.round(Math.max(8, sy - bh - 14)) + "px";
+    b.el.style.setProperty("--tail", Math.round(Math.max(14, Math.min(bw - 14, sx - left))) + "px");
+  });
+}
+/* every CHAT_EVERY seconds, whoever has gone longest without talking says their message */
+function chatter(t) {
+  if (!CHAT_EVERY || t < nextChat) return;
+  nextChat = t + CHAT_EVERY;
+  if (bubbles.length >= 2) return;
+  const pool = walkers.filter(w => (w.state === "idle" || w.state === "walk") && !bubbleFor(w.id) && fans.get(w.id) && fans.get(w.id).message);
+  if (!pool.length) return;
+  pool.sort((a, b) => (lastSaid.get(a.id) || 0) - (lastSaid.get(b.id) || 0) || Math.random() - 0.5);
+  say(pool[0].id, fans.get(pool[0].id).message, BUBBLE_SECS);
+}
+
+/* --- pick up, dangle, drop (mouse or touch on the big screen) --- */
+let held = null;
+const clampFloor = y => Math.max(FLOOR_TOP, Math.min(FLOOR_BOT, y));
+const depth = w => w.state === "held" ? 1e9 : w.state === "fall" ? w.gy : w.y;
+function dust(x, y) {
+  if (reduceMotion) return;
+  for (let i = 0; i < 10; i++) confetti.push({ x, y, vx: rand(-34, 34), vy: rand(-46, -12), c: i % 2 ? "#a39cd6" : "#4a4470", life: rand(0.3, 0.55), w: 1 });
+}
+function toLogical(ev) {
+  const r = scene.getBoundingClientRect();
+  return { x: (ev.clientX - r.left) / r.width * LW, y: (ev.clientY - r.top) / r.height * LH };
+}
+function hitWalker(x, y) {
+  return walkers.slice().sort((a, b) => depth(b) - depth(a))
+    .find(w => fans.has(w.id) && Math.abs(x - w.x) <= 8 && y >= w.y - 25 && y <= w.y + 3) || null;
+}
+scene.addEventListener("pointerdown", ev => {
+  if (current !== "stage" || held || ev.button > 0) return;
+  const p = toLogical(ev), w = hitWalker(p.x, p.y);
+  if (!w) return;
+  ev.preventDefault();
+  try { scene.setPointerCapture(ev.pointerId); } catch (e) {}
+  held = { w, pid: ev.pointerId, sx: p.x, sy: p.y, dx: w.x - p.x, dy: w.y - p.y, moved: false, lx: p.x, ly: p.y, lt: nowS(), vx: 0, vy: 0 };
+});
+scene.addEventListener("pointermove", ev => {
+  const p = toLogical(ev);
+  if (!held || ev.pointerId !== held.pid) { if (ev.pointerType === "mouse") scene.classList.toggle("grab", !!hitWalker(p.x, p.y)); return; }
+  const w = held.w, t = nowS();
+  if (!held.moved) {
+    if (Math.hypot(p.x - held.sx, p.y - held.sy) < 3) return;
+    held.moved = true; w.state = "held"; w.gy = clampFloor(w.y);
+    scene.classList.add("held"); say(w.id, "WHOA!", 60);
+  }
+  w.x = Math.max(6, Math.min(LW - 6, p.x + held.dx));
+  w.y = Math.max(26, Math.min(LH - 2, p.y + held.dy));
+  if (w.y >= FLOOR_TOP) w.gy = clampFloor(w.y);       // over the floor: that's where they'll land
+  const dts = Math.max(0.016, t - held.lt);
+  held.vx = (p.x - held.lx) / dts; held.vy = (p.y - held.ly) / dts; held.lx = p.x; held.ly = p.y; held.lt = t;
+  if (Math.abs(held.vx) > 4) w.dir = held.vx < 0 ? -1 : 1;
+});
+function release(ev) {
+  if (!held || ev.pointerId !== held.pid) return;
+  const w = held.w;
+  scene.classList.remove("held");
+  if (!held.moved) {
+    const f = fans.get(w.id);
+    if (f) say(w.id, f.message || CHEERS[Math.floor(Math.random() * CHEERS.length)], BUBBLE_SECS);
+  } else {
+    hush(w.id);
+    if (w.y > w.gy) w.y = w.gy;
+    w.state = "fall";
+    w.vy = Math.max(-160, Math.min(220, held.vy * 0.6));
+    w.vx = Math.max(-120, Math.min(120, held.vx * 0.6));
+  }
+  held = null;
+}
+["pointerup", "pointercancel", "lostpointercapture"].forEach(n => scene.addEventListener(n, release));
+
 let last = performance.now() / 1000;
 function frame() {
   requestAnimationFrame(frame);
@@ -1007,28 +1200,50 @@ function frame() {
 
   // walkers
   walkers.forEach(w => {
+    if (w.state === "held") return;
+    if (w.state === "fall") {
+      w.vy += 520 * dt; w.y += w.vy * dt;
+      w.x = Math.max(8, Math.min(LW - 8, w.x + w.vx * dt)); w.vx *= Math.pow(0.12, dt);
+      if (w.y >= w.gy) {
+        w.y = w.gy;
+        if (w.vy > 150) { w.vy = -w.vy * 0.32; dust(w.x, w.y); }
+        else { w.state = "idle"; w.until = t + rand(1.5, 3.5); w.style = 1; }
+      }
+      return;
+    }
     if (w.state === "walk") {
       const dx = w.tx - w.x, dy = w.ty - w.y, d = Math.hypot(dx, dy), sp = 16 * dt;
       if (d <= sp) { w.x = w.tx; w.y = w.ty; w.state = "idle"; w.until = t + rand(3, 9); w.style = Math.floor(Math.random() * 3); }
       else { w.x += dx / d * sp; w.y += dy / d * sp * 0.7; w.dir = dx < 0 ? -1 : 1; }
-    } else if (t > w.until) {
+    } else if (t > w.until && !bubbleFor(w.id)) {
       w.state = "walk"; w.tx = rand(14, LW - 14); w.ty = rand(FLOOR_TOP, FLOOR_BOT);
     }
   });
-  const order = walkers.slice().sort((a, b) => a.y - b.y);
-  order.forEach(w => {
+  walkers.slice().sort((a, b) => depth(a) - depth(b)).forEach(w => {
     const f = fans.get(w.id); if (!f) return;
     const s = getSprites(f);
-    let pose = "stand", off = 0;
-    if (w.state === "walk") pose = Math.floor(t / 0.16) % 2 ? "walkA" : "walkB";
-    else {
-      off = bp < 0.35 ? -1 : 0;
-      if (w.style === 1) pose = bi % 2 === 0 ? "up" : "stand";
-      else if (w.style === 2) pose = bi % 2 === 0 ? "walkA" : "walkB";
+    let pose = "stand", off = 0, x = w.x;
+    if (w.state === "held") {
+      pose = Math.floor(t / 0.12) % 2 ? "walkA" : "walkB";                  // legs kicking
+      x += reduceMotion ? 0 : Math.round(Math.sin(t * 7) * 1.2);           // dangling sway
+      const lift = Math.max(0, w.gy - w.y), k = Math.max(0.3, 1 - lift / 90);
+      rect(w.x - 5 * k, w.gy, 10 * k, 2, "rgba(5,3,14,.45)");
+    } else if (w.state === "fall") {
+      pose = "up";
+      rect(w.x - 5, w.gy, 10, 2, "rgba(5,3,14,.6)");
+    } else {
+      if (w.state === "walk") pose = Math.floor(t / 0.16) % 2 ? "walkA" : "walkB";
+      else {
+        off = bp < 0.35 ? -1 : 0;
+        if (w.style === 1) pose = bi % 2 === 0 ? "up" : "stand";
+        else if (w.style === 2) pose = bi % 2 === 0 ? "walkA" : "walkB";
+      }
+      rect(w.x - 5, w.y, 10, 2, "rgba(5,3,14,.6)");
     }
-    rect(w.x - 5, w.y, 10, 2, "rgba(5,3,14,.6)");
-    drawSpriteAt(s[pose], w.x, w.y + off, w.dir, 1);
+    drawSpriteAt(s[pose], x, w.y + off, w.dir, 1);
   });
+  chatter(t);
+  placeBubbles(t);
 
   // spotlight pop-in
   if (!popping && queue.length) startPop(t);
@@ -1135,30 +1350,67 @@ nameEl.addEventListener("input", () => { errEl.hidden = true; updateSend(); });
 document.getElementById("shuffle").addEventListener("click", () => { look = randomLook(); syncOptions(); });
 
 const doneEl = document.getElementById("done"), doneSprite = document.getElementById("done-sprite"), doneTimer = document.getElementById("done-timer");
-let resetTimer = 0;
+const doneTitle = document.getElementById("done-title"), doneText = document.getElementById("done-text"), doneStatus = document.getElementById("done-status");
+const nextBtn = document.getElementById("next-guest"), msgEl = document.getElementById("fan-msg");
+let resetTimer = 0, watchTimer = 0;
 function resetStation() {
-  clearInterval(resetTimer); doneEl.hidden = true;
-  nameEl.value = ""; look = randomLook(); syncOptions(); updateSend();
+  clearInterval(resetTimer); clearTimeout(watchTimer); doneEl.hidden = true;
+  nameEl.value = ""; msgEl.value = ""; look = randomLook(); syncOptions(); updateSend();
 }
-document.getElementById("next-guest").addEventListener("click", resetStation);
+nextBtn.addEventListener("click", resetStation);
+
+/* Guest phones keep the confirmation up and check until the crew decides. */
+function watchApproval(id, name) {
+  let tries = 0;
+  const tick = async () => {
+    if (doneEl.hidden) return;
+    let s = "unknown";
+    try { s = await store.status(id); } catch (e) {}
+    if (doneEl.hidden) return;
+    if (s === "approved") {
+      doneTitle.textContent = name + ", YOU'RE ON STAGE!";
+      doneText.textContent = "Look up at the big screen. Tap your character there to hear what you said.";
+      doneStatus.hidden = true; return;
+    }
+    if (s === "rejected" || s === "removed") {
+      doneStatus.textContent = "The crew couldn't put this one up. Try a different name or message.";
+      doneStatus.className = "status bad"; doneStatus.hidden = false; return;
+    }
+    if (++tries < 120) watchTimer = setTimeout(tick, 5000);
+  };
+  watchTimer = setTimeout(tick, 4000);
+}
 
 document.getElementById("make-form").addEventListener("submit", async ev => {
   ev.preventDefault();
-  const name = cleanName(nameEl.value);
+  const name = cleanName(nameEl.value), message = cleanMsg(msgEl.value);
   if (!name || !store) return;
   sendBtn.disabled = true; sendBtn.textContent = "SENDING…"; errEl.hidden = true;
   try {
-    await store.add({ name, look: sanitizeLook(look), createdAt: Date.now() });
-    document.getElementById("done-title").textContent = name + ", YOU'RE ON STAGE!";
+    const res = (await store.add({ name, message, look: sanitizeLook(look), createdAt: Date.now() })) || {};
+    const isPending = res.status === "pending";
+    doneTitle.textContent = isPending ? "NICE ONE, " + name + "!" : name + ", YOU'RE ON STAGE!";
+    doneText.textContent = isPending
+      ? "The crew gives every character a quick check, then you drop onto the big screen."
+      : "Look up at the big screen. Your character is dropping in now.";
+    doneStatus.textContent = "Waiting for the crew…"; doneStatus.className = "status"; doneStatus.hidden = !(isPending && guest);
     paintSprite(doneSprite, previewSet.up);
     doneEl.hidden = false;
-    let left = 8; doneTimer.textContent = "Resetting in " + left + "s";
-    resetTimer = setInterval(() => { left--; doneTimer.textContent = "Resetting in " + left + "s"; if (left <= 0) resetStation(); }, 1000);
+    if (guest) {
+      // own phone: no countdown, they leave when they want
+      nextBtn.textContent = "MAKE ANOTHER"; doneTimer.hidden = true;
+      if (isPending && store.status) watchApproval(res.id, name);
+    } else {
+      nextBtn.textContent = "NEXT GUEST"; doneTimer.hidden = false;
+      let left = 8; doneTimer.textContent = "Resetting in " + left + "s";
+      resetTimer = setInterval(() => { left--; doneTimer.textContent = "Resetting in " + left + "s"; if (left <= 0) resetStation(); }, 1000);
+    }
   } catch (e) {
     const code = e && e.code;
     errEl.textContent = code === "permission_denied" || code === "not_granted"
       ? "This account can't send characters. Ask the organiser for edit access to this page."
-      : code === "quota_exceeded" ? "The stage is full (database limit reached). Remove some old characters below."
+      : code === "quota_exceeded" ? "The stage is full right now. Ask the crew at the booth."
+      : code === "busy" ? "Lots of characters are waiting for the crew. Try again in a minute."
       : code === "invalid" ? "That name didn't go through. Use letters and numbers only."
       : "Couldn't reach the stage. Check the connection and tap Send again.";
     errEl.hidden = false;
@@ -1193,8 +1445,12 @@ const adminEl = document.getElementById("admin"), adminList = document.getElemen
 const adminKeyForm = document.getElementById("admin-key"), adminKeyIn = document.getElementById("admin-key-in"), adminKeyMsg = document.getElementById("admin-key-msg");
 const adminMain = document.getElementById("admin-main"), adminLock = document.getElementById("admin-lock");
 const tabEntries = document.getElementById("tab-entries"), tabFans = document.getElementById("tab-fans");
+const tabQueue = document.getElementById("tab-queue"), queueCount = document.getElementById("queue-count");
 const SEEN_STORE = "amj26-live-seen";
-let adminOpen = false, adminTab = "entries", entries = [], entriesErr = "", adminTimer = 0, adminLoading = false;
+let adminOpen = false, adminTab = "queue", entries = [], entriesErr = "", adminTimer = 0, adminLoading = false;
+let pending = [], queueErr = "", reviewOn = null, queueTimer = 0, queueLoading = false, reviewBusy = false;
+const queueBusy = new Set();
+const baseTitle = document.title;
 let seen = new Set(); try { seen = new Set(JSON.parse(lsGet(SEEN_STORE) || "[]")); } catch (e) {}
 const busy = new Set();
 
@@ -1224,20 +1480,95 @@ async function loadEntries() {
   renderAdmin();
 }
 
+async function loadQueue() {
+  if (!adminKey || queueLoading) return;
+  queueLoading = true;
+  try {
+    const j = await sheetGet({ action: "queue", key: adminKey });
+    if (!Array.isArray(j.pending)) {
+      pending = []; reviewOn = null;
+      queueErr = "The Apps Script is the older version. Paste the new Code.gs and redeploy to turn on the review queue.";
+    } else {
+      pending = j.pending.map(d => sanitizeFan(String(d.id), d)).sort((a, b) => a.createdAt - b.createdAt);
+      reviewOn = j.review !== false; queueErr = "";
+    }
+  } catch (e) {
+    if (e.code === "unauthorized") { adminKey = ""; lsSet(ADMIN_KEY_STORE, null); adminKeyMsg.textContent = "That key didn't work."; }
+    else queueErr = "Couldn't reach the Google Sheet. Retrying…";
+  } finally { queueLoading = false; }
+  renderAdmin();
+}
+async function review(f, approve) {
+  queueBusy.add(f.id); renderAdmin();
+  try {
+    await sheetPost({ action: "review", key: adminKey, id: f.id, approve });
+    pending = pending.filter(x => x.id !== f.id); queueErr = "";
+    if (approve && store && store.refresh) store.refresh();
+  } catch (e) {
+    if (e.code === "not_found") pending = pending.filter(x => x.id !== f.id);
+    queueErr = e.code === "unauthorized" ? "The admin key was rejected." : e.code === "not_found" ? "That one was already handled." : "Couldn't save. Try again.";
+  }
+  queueBusy.delete(f.id); renderAdmin();
+}
+async function setReview(on) {
+  reviewBusy = true; renderAdmin();
+  try { await sheetPost({ action: "setReview", key: adminKey, on }); reviewOn = on; queueErr = ""; }
+  catch (e) { queueErr = "Couldn't change the setting. Try again."; }
+  reviewBusy = false; renderAdmin();
+}
+
 function renderAdmin() {
+  queueCount.textContent = pending.length ? "(" + pending.length + ")" : "";
+  document.title = pending.length && adminOpen ? "(" + pending.length + ") " + baseTitle : baseTitle;
   if (!adminOpen) return;
   const locked = !adminKey;
   adminKeyForm.hidden = !locked; adminMain.hidden = locked; adminLock.hidden = locked;
   if (locked) return;
   const featured = entries.filter(d => d.featured).length, fresh = entries.filter(d => !seen.has(d.id)).length;
   adminStats.replaceChildren();
-  [["COSTUMES", entries.length], ["FEATURED", featured], ["NEW", fresh], ["FANS", fans.size]].forEach(([k, v]) => {
+  [["WAITING", pending.length], ["FANS", fans.size], ["COSTUMES", entries.length], ["FEATURED", featured], ["NEW", fresh]].forEach(([k, v]) => {
     const sp = document.createElement("span"); const b = document.createElement("b"); b.textContent = v; sp.append(k.toLowerCase() + " ", b); adminStats.append(sp);
   });
+  tabQueue.setAttribute("aria-selected", String(adminTab === "queue"));
   tabEntries.setAttribute("aria-selected", String(adminTab === "entries")); tabFans.setAttribute("aria-selected", String(adminTab === "fans"));
   adminList.replaceChildren();
   const msg = t => { const m = document.createElement("p"); m.className = "admin-msg"; m.textContent = t; adminList.append(m); };
-  if (adminTab === "entries") {
+  if (adminTab === "queue") {
+    const tg = document.createElement("div"); tg.className = "admin-toggle";
+    const sp = document.createElement("span");
+    sp.textContent = reviewOn === false
+      ? "Characters without a message go straight on stage. Ones with a message still wait here."
+      : "Every new character waits here until you approve it.";
+    const tb = document.createElement("button"); tb.type = "button";
+    tb.setAttribute("aria-pressed", String(reviewOn !== false));
+    tb.textContent = reviewBusy ? "SAVING…" : reviewOn === false ? "HOLD ALL: OFF" : "HOLD ALL: ON";
+    tb.disabled = reviewBusy || reviewOn === null;
+    tb.addEventListener("click", () => setReview(!reviewOn));
+    tg.append(sp, tb); adminList.append(tg);
+    if (queueErr) msg(queueErr);
+    if (!pending.length) { if (!queueErr) msg("Nothing waiting. New characters show up here within a few seconds."); return; }
+    pending.forEach(f => {
+      const row = document.createElement("div"); row.className = "admin-row";
+      const c = document.createElement("canvas"); c.width = SW; c.height = SH; paintSprite(c, buildSprite(f.look, "stand"));
+      const info = document.createElement("div");
+      const t = document.createElement("div"); t.className = "t"; t.textContent = f.name;
+      info.append(t);
+      const s = document.createElement("div"); s.className = f.message ? "say" : "m"; s.textContent = f.message ? "“" + f.message + "”" : "(no message)"; info.append(s);
+      const m = document.createElement("div"); m.className = "m"; m.textContent = fmtTime(f.createdAt); info.append(m);
+      const acts = document.createElement("div"); acts.className = "acts";
+      const ok = document.createElement("button"); ok.type = "button"; ok.className = "ok"; ok.textContent = "APPROVE";
+      const no = document.createElement("button"); no.type = "button"; no.textContent = "REJECT";
+      ok.disabled = no.disabled = queueBusy.has(f.id);
+      if (queueBusy.has(f.id)) ok.textContent = "…";
+      ok.addEventListener("click", () => review(f, true));
+      no.addEventListener("click", () => {
+        if (!no.classList.contains("armed")) { no.classList.add("armed"); no.textContent = "CONFIRM"; setTimeout(() => { no.classList.remove("armed"); no.textContent = "REJECT"; }, 3000); return; }
+        review(f, false);
+      });
+      acts.append(ok, no);
+      row.append(c, info, acts); adminList.append(row);
+    });
+  } else if (adminTab === "entries") {
     if (entriesErr) msg(entriesErr);
     if (!entries.length) { msg(entriesErr ? "" : "No costume entries yet. They appear here as the form is submitted."); return; }
     entries.forEach(d => {
@@ -1265,6 +1596,7 @@ function renderAdmin() {
       const t = document.createElement("div"); t.className = "t"; t.textContent = f.name;
       const m = document.createElement("div"); m.className = "m"; m.textContent = "#" + String(fanNumber(f.id)).padStart(3, "0") + " · " + fmtWhen(f.createdAt);
       const cr = creditsFor(f.look); info.append(t, m);
+      if (f.message) { const s = document.createElement("div"); s.className = "say"; s.textContent = "“" + f.message + "”"; info.append(s); }
       if (cr) { const m2 = document.createElement("div"); m2.className = "m"; m2.textContent = cr; info.append(m2); }
       const b = document.createElement("button"); b.type = "button"; b.textContent = "REMOVE";
       b.addEventListener("click", async () => {
@@ -1291,13 +1623,15 @@ function markSeen() { entries.forEach(d => seen.add(d.id)); lsSet(SEEN_STORE, JS
 function openAdmin() {
   if (adminOpen) return;
   adminOpen = true; adminEl.hidden = false; adminKeyMsg.textContent = "";
-  renderAdmin(); loadEntries();
+  renderAdmin(); loadEntries(); loadQueue();
   clearInterval(adminTimer); adminTimer = setInterval(() => { loadEntries(); }, 10000);
+  clearInterval(queueTimer); queueTimer = setInterval(() => { loadQueue(); }, 4000);
   if (!adminKey) adminKeyIn.focus();
 }
 function closeAdmin() {
   if (!adminOpen) return;
-  markSeen(); adminOpen = false; adminEl.hidden = true; clearInterval(adminTimer);
+  markSeen(); adminOpen = false; adminEl.hidden = true; clearInterval(adminTimer); clearInterval(queueTimer);
+  renderAdmin();
 }
 let hotTaps = 0, hotTimer = 0;
 document.getElementById("admin-hot").addEventListener("click", () => {
@@ -1311,16 +1645,17 @@ addEventListener("keydown", ev => {
   if (!typing && ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey && (ev.key === "A" || ev.key === "a")) { ev.preventDefault(); adminOpen ? closeAdmin() : openAdmin(); }
 });
 document.getElementById("admin-close").addEventListener("click", closeAdmin);
-document.getElementById("admin-refresh").addEventListener("click", () => { loadEntries(); refreshPieces(); });
-adminLock.addEventListener("click", () => { adminKey = ""; lsSet(ADMIN_KEY_STORE, null); entries = []; renderAdmin(); if (lastRecent.length) renderRecent(lastRecent); });
+document.getElementById("admin-refresh").addEventListener("click", () => { loadEntries(); loadQueue(); refreshPieces(); });
+adminLock.addEventListener("click", () => { adminKey = ""; lsSet(ADMIN_KEY_STORE, null); entries = []; pending = []; renderAdmin(); if (lastRecent.length) renderRecent(lastRecent); });
 adminKeyForm.addEventListener("submit", ev => {
   ev.preventDefault();
   const k = adminKeyIn.value.trim(); adminKeyIn.value = "";
   if (!k) return;
   adminKey = k; lsSet(ADMIN_KEY_STORE, k); adminKeyMsg.textContent = "";
-  renderAdmin(); loadEntries();
+  renderAdmin(); loadEntries(); loadQueue();
   if (lastRecent.length) renderRecent(lastRecent);
 });
+tabQueue.addEventListener("click", () => { adminTab = "queue"; renderAdmin(); });
 tabEntries.addEventListener("click", () => { adminTab = "entries"; renderAdmin(); });
 tabFans.addEventListener("click", () => { adminTab = "fans"; renderAdmin(); });
 
