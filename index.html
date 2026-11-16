@@ -2,7 +2,13 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Live @ Arts &amp; Music Jam</title>
+<title>Arts &amp; Music Jam 2026 · Marsiling</title>
+<meta name="description" content="Marsiling's Arts &amp; Music Jam is here: Sat 21 Nov, 6pm. Good music, art and great vibes. Discover. Connect. Create! Get your tickets now.">
+<meta property="og:title" content="Arts &amp; Music Jam 2026 · Sat 21 Nov, 6pm">
+<meta property="og:description" content="Good music, art and great vibes in Marsiling. Discover. Connect. Create! Get your tickets now.">
+<meta property="og:image" content="https://cneakyinks.github.io/amj26-live/banner.jpg">
+<meta property="og:url" content="https://cneakyinks.github.io/amj26-live/">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap">
 <style>
@@ -588,6 +594,14 @@ body.teaser .teaser-cta { display: grid; position: absolute; left: 50%; transfor
 .teaser-cta .join { font-family: var(--font-display); font-size: clamp(8px, .9vw, 12px); letter-spacing: .08em; line-height: 1.5;
   color: var(--ink); background: var(--shadow); border: 2px solid var(--cyan); padding: .8em 1.1em; }
 .teaser-cta .join:hover, .teaser-cta .join:focus-visible { background: var(--cyan); color: var(--shadow); }
+/* maker's mark: small, faint, top right */
+.made-by { position: fixed; z-index: 25; top: calc(env(safe-area-inset-top, 0px) + 10px); right: max(12px, env(safe-area-inset-right, 0px));
+  display: flex; align-items: center; gap: 4px; text-decoration: none; opacity: .32; transition: opacity .2s; }
+.made-by:hover, .made-by:focus-visible { opacity: .9; }
+.made-by span { font-family: var(--font-body); font-size: 14px; color: var(--muted); }
+.made-by img { width: 64px; height: auto; display: block; }
+body.join-open .made-by, body.crew-page .made-by { display: none; }
+@media (max-width: 760px) { .made-by { flex-direction: column; gap: 0; align-items: flex-end; } .made-by img { width: 48px; } .made-by span { font-size: 12px; } }
 /* phones: no ticker, fan count centred on top (under the title once it's live and shown) */
 @media (max-width: 760px) {
   .ticker { display: none; }
@@ -641,6 +655,7 @@ body.teaser #g-tag-fld { display: none; }
 </nav>
 
 <div class="banner" id="banner" hidden></div>
+<a class="made-by" href="https://cneakyinks.github.io/" target="_blank" rel="noopener" aria-label="Made by Cneakyinks (opens portfolio)"><span>made by</span><img src="cneakyinks.png" alt="Cneakyinks" width="72" height="39"></a>
 
 <!-- Organisers: open index.html#crew on your own phone, or tap the bottom-right corner 6 times (or press Shift+A) -->
 <button type="button" class="admin-hot" id="admin-hot" tabindex="-1" aria-hidden="true"></button>
