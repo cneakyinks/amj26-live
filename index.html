@@ -1096,18 +1096,24 @@ function takeMagicLink() {
   saveToken(m[1], m[2]); lsSet(CURRENT_STORE, m[1]);
   try { history.replaceState(null, "", location.pathname + location.search + "#join"); } catch (e) { location.hash = "join"; }
 }
-function sheetError(code) { const e = new Error(code || "failed"); e.code = code; return e; }
+function sheetError(code, detail) { const e = new Error(code || "failed"); e.code = code; e.detail = detail || ""; return e; }
+// Apps Script answers with an HTML page when it crashes or isn't authorised: keep that text so we can show why
+async function sheetJson(r) {
+  const t = await r.text();
+  try { return JSON.parse(t); }
+  catch (e) { throw sheetError("server", (t.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() || ("HTTP " + r.status)).slice(0, 160)); }
+}
 async function sheetGet(params) {
   const r = await fetch(SHEET_URL + "?" + new URLSearchParams(params), { cache: "no-store" });
-  const j = await r.json();
-  if (!j.ok) throw sheetError(j.error);
+  const j = await sheetJson(r);
+  if (!j.ok) throw sheetError(j.error, j.detail);
   return j;
 }
 async function sheetPost(body) {
   // text/plain keeps this a "simple" request, so the browser skips the CORS preflight Apps Script can't answer.
   const r = await fetch(SHEET_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
-  const j = await r.json();
-  if (!j.ok) throw sheetError(j.error);
+  const j = await sheetJson(r);
+  if (!j.ok) throw sheetError(j.error, j.detail);
   return j;
 }
 
@@ -1928,6 +1934,8 @@ const gErr = code => code === "quota_exceeded" ? "The stage is full right now. A
   : code === "unknown_action" ? "This part isn't switched on yet. Ask the crew at the booth."
   : code === "full" ? "You already have 3 moments. Remove one to add another."
   : code === "not_allowed" ? "This character can't be changed any more. Make a new one."
+  : code === "drive" ? "Photos can't be saved yet. Show this to the crew at the booth."
+  : code === "server" ? "The stage had a hiccup. Try again, or show this to the crew at the booth."
   : "Couldn't reach the stage. Check your connection and try again.";
 
 let gEntered = false;
@@ -2239,11 +2247,17 @@ async function gRemoveMoment(m, x) {
 /* shrink on the phone before upload: a 1600px photo for the banner, a small square-ish thumb for the profile and the crew */
 function loadImg(file) {
   return new Promise((res, rej) => { const url = URL.createObjectURL(file), img = new Image();
-    img.onload = () => res({ img, url }); img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("decode")); }; img.src = url; });
+    img.onload = () => res({ img, url });
+    img.onerror = () => { URL.revokeObjectURL(url);
+      // some phones hand over formats <img> won't open; createImageBitmap sometimes still can
+      if (window.createImageBitmap) createImageBitmap(file).then(img => res({ img, url: "" }), () => rej(new Error("decode"))); else rej(new Error("decode")); };
+    img.src = url; });
 }
 function toJpeg(img, max, q) {
-  const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
-  const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+  const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+  if (!w || !h) throw new Error("decode");
+  const k = Math.min(1, max / Math.max(w, h));
+  const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
   c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
   return c.toDataURL("image/jpeg", q);
 }
@@ -2258,14 +2272,14 @@ $g("g-photo").addEventListener("change", async ev => {
     big = toJpeg(r.img, 1600, 0.82); thumb = toJpeg(r.img, 320, 0.7);
     if (thumb.length > 47000) thumb = toJpeg(r.img, 220, 0.6);
     if (big.length > 3900000) big = toJpeg(r.img, 1200, 0.7);
-  } catch (e) { err.textContent = "That file isn't a photo we can read. Try a JPG or PNG."; err.hidden = false; return; }
+  } catch (e) { err.textContent = "That file isn't a photo we can read. Try a screenshot of it, or a JPG or PNG."; err.hidden = false; return; }
   finally { if (url) URL.revokeObjectURL(url); }
   G.uploading = thumb; gRenderProfile();
   try {
     const j = await sheetPost({ action: "moment", fanId: id, token: tok, image: big.split(",")[1], thumb });
     G.prof.moments = (G.prof.moments || []).concat({ id: String(j.id), thumb, status: "pending" });
     gToast("PHOTO SENT", "The crew checks it first. Then you may see your moments pop up on the big screen banner.");
-  } catch (e) { err.textContent = gErr(e.code); err.hidden = false; }
+  } catch (e) { err.textContent = gErr(e.code) + (e.detail ? " (" + e.detail + ")" : ""); err.hidden = false; }
   G.uploading = null; gRenderProfile();
 });
 $g("g-edit").addEventListener("click", () => { G.edit = true; G.draft = { ...(G.prof ? G.prof.look : G.draft) }; gGo("look"); });
