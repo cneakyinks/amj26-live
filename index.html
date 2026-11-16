@@ -681,9 +681,9 @@ body.guest .station-wrap { padding-top: 24px; }
         <div class="fld">
           <label for="g-email">EMAIL</label>
           <input type="email" id="g-email" placeholder="you@example.com" inputmode="email" autocapitalize="off" autocomplete="email" spellcheck="false">
-          <span class="hint" id="g-e-hint">We send your profile link here so you can come back on any device. It never shows on screen.</span>
+          <span class="hint" id="g-e-hint">Type this again to get back to your profile on any device. It never shows on screen.</span>
         </div>
-        <label class="check" for="g-ok"><input type="checkbox" id="g-ok"><span>Show my character, name and tagline on the event screen, and keep my email to send my profile link.</span></label>
+        <label class="check" for="g-ok"><input type="checkbox" id="g-ok"><span>Show my character, name and tagline on the event screen, and keep my email so I can get back to my profile.</span></label>
         <button type="submit" hidden></button>
       </form>
     </div>
@@ -720,16 +720,16 @@ body.guest .station-wrap { padding-top: 24px; }
   <section class="scr" id="g-find" hidden>
     <div class="top">
       <button type="button" class="back" data-g="landing" aria-label="Back">&lt;</button>
-      <div class="top-title">FIND MY CHARACTER</div>
+      <div class="top-title">OPEN MY PROFILE</div>
     </div>
     <div class="scr-body">
       <form class="form" id="g-find-form" novalidate>
-        <p style="margin:0;color:var(--muted)">Type the email you used. We'll send your profile link there again.</p>
+        <p style="margin:0;color:var(--muted)">Type the email you used when you made your character.</p>
         <div class="fld">
           <label for="g-find-email">EMAIL</label>
           <input type="email" id="g-find-email" placeholder="you@example.com" inputmode="email" autocapitalize="off" autocomplete="email" spellcheck="false">
         </div>
-        <button type="submit" class="btn go" id="g-find-send">EMAIL MY LINK</button>
+        <button type="submit" class="btn go" id="g-find-send">OPEN MY PROFILE</button>
         <p class="why" id="g-find-msg" aria-live="polite" style="margin:0;text-align:left"></p>
         <button type="button" class="linkbtn" id="g-find-new">Make a new character instead</button>
       </form>
@@ -771,8 +771,8 @@ body.guest .station-wrap { padding-top: 24px; }
           </div>
           <div class="linkrow">
             <span id="g-p-mail"></span>
-            <button type="button" class="linkbtn" id="g-resend">Email my link again</button>
           </div>
+          <div class="linkrow" id="g-others"></div>
           <div class="linkrow">
             <button type="button" class="linkbtn" id="g-another">Make another character</button>
           </div>
@@ -1162,7 +1162,7 @@ function sheetStore() {
       if (status === "approved" && !list.has(j.id)) {
         const fan = sanitizeFan(j.id, { ...data, createdAt: j.createdAt, shownAt: j.createdAt }); list.set(fan.id, fan); if (loaded) emit([{ type: "added", fan }]);
       }
-      return { id: j.id, status, mailed: j.mailed };
+      return { id: j.id, status };
     },
     async status(id) {
       const tok = myTokens()[id];
@@ -2044,7 +2044,7 @@ function gSyncYou() {
   $g("g-bub").classList.toggle("empty", !G.tag);
   const hint = $g("g-e-hint"), bad = G.email && !emailOk(G.email) && document.activeElement !== gEmail;
   hint.classList.toggle("bad", !!bad);
-  hint.textContent = bad ? "That email doesn't look right. Check for a typo." : "We send your profile link here so you can come back on any device. It never shows on screen.";
+  hint.textContent = bad ? "That email doesn't look right. Check for a typo." : "Type this again to get back to your profile on any device. It never shows on screen.";
   $g("g-you-next").disabled = !(G.name && emailOk(G.email) && G.ok);
 }
 [gName, gTag, gEmail].forEach(el => el.addEventListener("input", gSyncYou));
@@ -2059,7 +2059,7 @@ function gWearRows(l) {
 }
 function gRenderReview() {
   $g("g-r-name").textContent = G.name; $g("g-r-tag").textContent = G.tag ? "“" + G.tag + "”" : "No tagline";
-  $g("g-r-email").textContent = "Link goes to " + G.email;
+  $g("g-r-email").textContent = "Log back in with " + G.email;
   $g("g-r-wear").replaceChildren(...gWearRows(G.draft).map(([k, v]) => {
     const d = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd");
     dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d;
@@ -2076,7 +2076,7 @@ $g("g-send").addEventListener("click", async () => {
     saveProfile(res.id, { name: G.name, message: G.tag, look: l, email: G.email.trim(), createdAt: Date.now() });
     lsSet(CURRENT_STORE, res.id);
     G.prof = null; gGo("profile");
-    gToast("SENT!", (res.mailed ? "Your profile link is in your email. " : "") + (res.status === "approved" ? "Look up at the big screen!" : "You'll drop onto the stage once the crew says yes."));
+    gToast("SENT!", res.status === "approved" ? "Look up at the big screen!" : "You'll drop onto the stage once the crew says yes.");
   } catch (e) {
     btn.disabled = false; btn.textContent = "SEND TO THE CREW";
     $g("g-send-why").textContent = gErr(e.code); $g("g-send-why").classList.add("bad");
@@ -2088,9 +2088,18 @@ $g("g-find-form").addEventListener("submit", async ev => {
   ev.preventDefault();
   const email = $g("g-find-email").value.trim(), msg = $g("g-find-msg"), btn = $g("g-find-send");
   if (!emailOk(email)) { msg.textContent = "That email doesn't look right. Check for a typo."; return; }
-  btn.disabled = true; msg.textContent = "Sending…";
-  try { await sheetPost({ action: "sendLink", email }); msg.textContent = "If that email has a character, the link is on its way. Check your spam folder too."; }
-  catch (e) { msg.textContent = gErr(e.code); }
+  btn.disabled = true; msg.textContent = "Looking…";
+  try {
+    const j = await sheetPost({ action: "login", email });
+    const list = (j.fans || []).filter(f => f && f.id && f.token);
+    if (!list.length) throw Object.assign(new Error("no_match"), { code: "no_match" });
+    list.forEach(f => { saveToken(String(f.id), String(f.token)); saveProfile(String(f.id), { name: cleanName(f.name), email, createdAt: Number(f.createdAt) || 0 }); });
+    lsSet(CURRENT_STORE, String(list[0].id));
+    msg.textContent = ""; G.prof = null; gGo("profile");
+    gToast("WELCOME BACK", list.length > 1 ? "You have " + list.length + " characters. Switch between them at the bottom of your profile." : "Here's your character.");
+  } catch (e) {
+    msg.textContent = e.code === "no_match" ? "We couldn't find a character with that email. Check the spelling, or make a new one." : gErr(e.code);
+  }
   btn.disabled = false;
 });
 $g("g-find-new").addEventListener("click", () => { G.edit = false; gGo("look"); });
@@ -2106,7 +2115,7 @@ async function gLoad() {
   catch (e) {
     if (e.code === "not_found") {
       dropToken(id); if (lsGet(CURRENT_STORE) === id) lsSet(CURRENT_STORE, null);
-      gToast("LINK EXPIRED", "We couldn't find that character. Make a new one.", true);
+      gToast("NOT FOUND", "We couldn't find that character. Open your profile with your email, or make a new one.", true);
       G.prof = null; gGo(currentId() ? "profile" : "landing"); return;
     }
   }
@@ -2164,8 +2173,16 @@ function gRenderProfile() {
   const c = gCredits(p ? p.look : G.fallbackLook);
   $g("g-wear-sec").hidden = !c.length;
   $g("g-wear").replaceChildren(...c.map(x => { const li = document.createElement("li"), b = document.createElement("b"); b.textContent = x.title; li.append(x.slot + ": ", b, " by " + x.by); return li; }));
-  $g("g-p-mail").textContent = p && p.email ? "Profile link sent to " + p.email : local.email ? "Profile link sent to " + maskEmail(local.email) : "";
-  $g("g-resend").hidden = !(p && p.email) && !local.email;
+  $g("g-p-mail").textContent = p && p.email ? "Log back in with " + p.email : local.email ? "Log back in with " + maskEmail(local.email) : "";
+  // other characters on this phone
+  const others = $g("g-others"), me = currentId(), all = myProfiles(), ids = Object.keys(myTokens()).filter(id => id !== me);
+  others.replaceChildren();
+  ids.forEach(id => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "linkbtn";
+    b.textContent = "Switch to " + (cleanName((all[id] || {}).name) || "my other character");
+    b.addEventListener("click", () => { lsSet(CURRENT_STORE, id); G.prof = null; gGo("profile"); });
+    others.append(b);
+  });
   gRenderSlots(alive); gRenderWall();
 }
 function gRenderSlots(alive) {
@@ -2252,13 +2269,6 @@ $g("g-photo").addEventListener("change", async ev => {
   G.uploading = null; gRenderProfile();
 });
 $g("g-edit").addEventListener("click", () => { G.edit = true; G.draft = { ...(G.prof ? G.prof.look : G.draft) }; gGo("look"); });
-$g("g-resend").addEventListener("click", async () => {
-  const id = currentId(), tok = myTokens()[id], local = myProfiles()[id] || {};
-  try {
-    await sheetPost(local.email ? { action: "sendLink", email: local.email } : { action: "sendLink", id, token: tok });
-    gToast("LINK SENT", "Check your email. It can take a minute, and it may land in spam.");
-  } catch (e) { gToast("COULDN'T SEND", gErr(e.code), true); }
-});
 $g("g-another").addEventListener("click", () => { G.edit = false; G.draft = randomLook(); G.name = ""; G.tag = ""; G.ok = false; gGo("look"); });
 
 /* character card: a PNG to keep */
