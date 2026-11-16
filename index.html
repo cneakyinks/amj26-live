@@ -422,7 +422,7 @@ body.crew-page .admin-key .crew-hi { display: block; }
 @media (min-width: 520px) { #guest .g-phone { border-inline: 3px solid var(--line); } }
 #guest canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 #guest .scr { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--void); }
-#guest .scr-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+#guest .scr-body { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 #guest .top { flex: none; display: flex; align-items: center; gap: 10px; background: var(--shadow); border-bottom: 2px solid var(--line);
   padding: calc(env(safe-area-inset-top, 0px) + 12px) max(14px, env(safe-area-inset-right, 0px)) 12px max(14px, env(safe-area-inset-left, 0px)); }
 #guest .back { background: none; border: 2px solid var(--line); width: 40px; height: 40px; padding: 0; font-family: var(--font-display); font-size: 12px; color: var(--muted); flex: none; }
@@ -562,7 +562,57 @@ body.crew-page .admin-key .crew-hi { display: block; }
 #guest .sheet-in p { margin: 0; color: var(--muted); text-align: center; font-size: 18px; }
 #guest .sheet-in a.btn { text-align: center; text-decoration: none; display: block; }
 
+/* ---------- Teaser (until 21 Nov 18:00 SGT): countdown on the banner, tickets in the middle ---------- */
+.countdown, .teaser-cta { display: none; }
+body.teaser .backdrop, body.teaser .empty { display: none; }
+body.teaser .countdown { display: grid; position: absolute; place-items: center; align-content: center; gap: .35em;
+  background: var(--shadow); border: 3px solid var(--line); box-shadow: 0 0 0 2px var(--shadow), 0 0 24px color-mix(in srgb, var(--hot) 45%, transparent); }
+.countdown .cd-k { font-family: var(--font-display); font-size: max(6px, .2em); letter-spacing: .14em; color: var(--cyan); }
+.countdown .cd-row { display: flex; align-items: flex-start; gap: .25em; font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+.countdown .cd-u { display: grid; justify-items: center; gap: .45em; }
+.countdown .cd-n { font-size: 1em; color: var(--gold); line-height: 1; letter-spacing: .04em;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--gold) 60%, transparent), 3px 3px 0 var(--hot); }
+.countdown .cd-l { font-size: max(5px, .16em); color: var(--muted); letter-spacing: .14em; }
+.countdown .cd-sep { font-size: 1em; color: var(--hot); line-height: 1; animation: cdblink 1s steps(1) infinite; }
+@keyframes cdblink { 50% { opacity: .25; } }
+body.teaser .teaser-cta { display: grid; position: absolute; left: 50%; transform: translateX(-50%); z-index: 4;
+  width: min(560px, calc(100% - 32px)); justify-items: center; gap: 10px; text-align: center; }
+.teaser-cta .tix { font-family: var(--font-display); font-size: clamp(12px, 1.5vw, 20px); letter-spacing: .06em; line-height: 1.4;
+  color: var(--shadow); background: var(--gold); text-decoration: none; padding: .9em 1.3em; border: 3px solid var(--shadow);
+  box-shadow: 5px 5px 0 var(--hot); animation: tixpulse 1.6s steps(2) infinite; }
+.teaser-cta .tix:hover, .teaser-cta .tix:focus-visible { background: var(--ink); }
+@keyframes tixpulse { 50% { box-shadow: 5px 5px 0 var(--cyan); } }
+.teaser-cta .lure { margin: 0; font-size: clamp(18px, 1.7vw, 26px); color: var(--ink); text-shadow: 2px 2px 0 var(--shadow);
+  background: color-mix(in srgb, var(--shadow) 78%, transparent); padding: 4px 10px; }
+.teaser-cta .lure b { color: var(--cyan); font-weight: normal; }
+.teaser-cta .join { font-family: var(--font-display); font-size: clamp(8px, .9vw, 12px); letter-spacing: .08em; line-height: 1.5;
+  color: var(--ink); background: var(--shadow); border: 2px solid var(--cyan); padding: .8em 1.1em; }
+.teaser-cta .join:hover, .teaser-cta .join:focus-visible { background: var(--cyan); color: var(--shadow); }
+/* phones: no ticker, fan count centred on top (under the title once it's live and shown) */
+@media (max-width: 760px) {
+  .ticker { display: none; }
+  .hud-count { left: 50%; transform: translateX(-50%); justify-items: center; text-align: center; }
+  body.title-on .hud-count { top: calc(env(safe-area-inset-top, 0px) + 44px); }
+  .hud-title { font-size: 9px; }
+  .banner { bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); }
+  body.teaser .countdown { border-width: 2px; }
+}
+/* the join flow opens as a pop-up over the stage */
+body.join-open #guest { z-index: 40; background: color-mix(in srgb, var(--void) 70%, transparent); }
+@media (min-width: 520px) { body.join-open #guest .g-phone { height: min(100%, 880px); top: 50%; transform: translateY(-50%); border: 3px solid var(--line); box-shadow: 8px 8px 0 var(--shadow); } }
+#guest .g-close { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 8px; z-index: 7; width: 40px; height: 40px;
+  background: var(--shadow); border: 2px solid var(--line); font-family: var(--font-display); font-size: 12px; color: var(--ink); }
+body:not(.join-open) #guest .g-close { display: none; }
+#guest .scr .top { padding-right: 56px; }
+body.no-moments #g-m-sec, body.no-moments #g-mwall { display: none !important; }
+body.teaser #g-tag-fld { display: none; }
+#guest details.priv { font-size: 17px; color: var(--muted); }
+#guest details.priv summary { color: var(--cyan); cursor: pointer; }
+#guest details.priv p { margin: 6px 0 0; }
+#guest .linkbtn.danger { color: var(--hot); }
+
 @media (prefers-reduced-motion: reduce) {
+  .countdown .cd-sep, .teaser-cta .tix { animation: none; }
   #guest .toast, .moment-wall { transition: none; }
   .ticker-track { animation: none; }
   .arrival, .look-note { transition: none; }
@@ -632,6 +682,15 @@ body.crew-page .admin-key .crew-hi { display: block; }
 <section class="view" id="stage" aria-label="Live stage">
   <img id="backdrop" class="backdrop" src="banner.jpg" alt="Marsiling's Arts &amp; Music Jam 2026: Discover. Connect. Create!">
   <div class="moment-wall" id="moment-wall" aria-hidden="true"></div>
+  <div class="countdown" id="countdown" role="timer" aria-label="Countdown to the Arts &amp; Music Jam, 21 November 6pm">
+    <span class="cd-k">THE JAM STARTS 21 NOV · 18:00 SGT</span>
+    <div class="cd-row">
+      <span class="cd-u"><span class="cd-n" id="cd-d">00</span><span class="cd-l">DAYS</span></span><span class="cd-sep">:</span>
+      <span class="cd-u"><span class="cd-n" id="cd-h">00</span><span class="cd-l">HRS</span></span><span class="cd-sep">:</span>
+      <span class="cd-u"><span class="cd-n" id="cd-m">00</span><span class="cd-l">MIN</span></span><span class="cd-sep">:</span>
+      <span class="cd-u"><span class="cd-n" id="cd-s">00</span><span class="cd-l">SEC</span></span>
+    </div>
+  </div>
   <canvas id="scene"></canvas>
   <div class="moment-tag" id="moment-tag" aria-hidden="true"><span class="tag" id="moment-tag-t"></span></div>
   <div class="bubbles" id="bubbles" aria-hidden="true"></div>
@@ -640,6 +699,11 @@ body.crew-page .admin-key .crew-hi { display: block; }
     <span class="num" id="count">000</span>
   </div>
   <div class="hud-title" id="hud-title">LIVE @ ARTS &amp; MUSIC JAM</div>
+  <div class="teaser-cta" id="teaser-cta">
+    <a class="tix" id="tix" target="_blank" rel="noopener">GET YOUR TICKETS NOW!</a>
+    <p class="lure">This is only the warm-up. <b>Live DJ, your character on the big screen</b> and much more fun at the Jam. 21 Nov, Marsiling.</p>
+    <button type="button" class="join" id="join-pre">MAKE YOUR CHARACTER · JOIN THE PRE-PARTY</button>
+  </div>
   <div class="empty" id="empty">
     <h2>THE FLOOR IS OPEN</h2>
     <p>Make your character at the station and watch it drop onto this stage.</p>
@@ -711,6 +775,7 @@ body.crew-page .admin-key .crew-hi { display: block; }
 <!-- ============ GUEST PHONES (#join) ============ -->
 <section class="view" id="guest" aria-label="Make your character" hidden>
  <div class="g-phone">
+  <button type="button" class="g-close" id="g-close" aria-label="Close and go back to the stage">×</button>
 
   <section class="scr" id="g-landing">
     <div class="land">
@@ -761,7 +826,7 @@ body.crew-page .admin-key .crew-hi { display: block; }
           <input type="text" id="g-name" maxlength="12" placeholder="PLAYER 1" spellcheck="false" autocapitalize="characters">
           <span class="hint">Letters and numbers. This is what the big screen shows.</span>
         </div>
-        <div class="fld">
+        <div class="fld" id="g-tag-fld">
           <label for="g-tag">TAGLINE <small id="g-t-count">0/48</small></label>
           <input type="text" id="g-tag" maxlength="48" placeholder="Hello Marsiling!" spellcheck="false">
           <span class="hint">Your speech bubble on stage. Optional.</span>
@@ -771,7 +836,11 @@ body.crew-page .admin-key .crew-hi { display: block; }
           <input type="email" id="g-email" placeholder="you@example.com" inputmode="email" autocapitalize="off" autocomplete="email" spellcheck="false">
           <span class="hint" id="g-e-hint">Type this again to get back to your profile on any device. It never shows on screen.</span>
         </div>
-        <label class="check" for="g-ok"><input type="checkbox" id="g-ok"><span>Show my character, name and tagline on the event screen, and keep my email so I can get back to my profile.</span></label>
+        <label class="check" for="g-ok"><input type="checkbox" id="g-ok"><span>Show my character, name and tagline on the AMJ26 website and the event screens, and keep my email so I can get back to my profile. (Required)</span></label>
+        <label class="check" for="g-updates"><input type="checkbox" id="g-updates"><span>Email me Jam updates: tickets, line-up and reminders. Optional, and you can unsubscribe anytime.</span></label>
+        <details class="priv"><summary>How we use your details</summary>
+          <p>Your character, stage name and tagline are public on this website and on the screens at the Jam. Your email is private: only the AMJ26 crew can see it. We use your email to let you back into your profile and, only if you ticked the box, to send Jam updates. Emails are deleted by 31 Dec 2026. You can delete your character and details anytime from your profile.</p>
+        </details>
         <button type="submit" hidden></button>
       </form>
     </div>
@@ -817,6 +886,7 @@ body.crew-page .admin-key .crew-hi { display: block; }
           <label for="g-find-email">EMAIL</label>
           <input type="email" id="g-find-email" placeholder="you@example.com" inputmode="email" autocapitalize="off" autocomplete="email" spellcheck="false">
         </div>
+
         <button type="submit" class="btn go" id="g-find-send">OPEN MY PROFILE</button>
         <p class="why" id="g-find-msg" aria-live="polite" style="margin:0;text-align:left"></p>
         <button type="button" class="linkbtn" id="g-find-new">Make a new character instead</button>
@@ -846,7 +916,7 @@ body.crew-page .admin-key .crew-hi { display: block; }
             <button type="button" class="btn" id="g-edit">EDIT OUTFIT</button>
             <button type="button" class="btn go" id="g-card">SAVE MY CARD</button>
           </div>
-          <div class="sec">
+          <div class="sec" id="g-m-sec">
             <h3>MOMENTS <span id="g-m-count">0 of 3</span></h3>
             <p>Add up to 3 photos from the Jam. Once the crew approves them, you may see your moments pop up on the big screen banner.</p>
             <div class="slots" id="g-slots"></div>
@@ -863,6 +933,9 @@ body.crew-page .admin-key .crew-hi { display: block; }
           <div class="linkrow" id="g-others"></div>
           <div class="linkrow">
             <button type="button" class="linkbtn" id="g-another">Make another character</button>
+          </div>
+          <div class="linkrow">
+            <button type="button" class="linkbtn danger" id="g-delete">Delete this character and my details</button>
           </div>
         </div>
       </div>
@@ -1164,6 +1237,15 @@ function demoStore() {
 
 /* ===== Google Sheet backend (pixelcostumeform/apps-script/Code.gs) ===== */
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbyc3FxPdY9vkY0hP1w8zT7olzf4S1g1NtvLjg_QtI4lWknlPK1StzHmT-i4JLLZcn8k/exec";
+/* ===== Teaser switches ===== */
+const EVENT_START = Date.UTC(2026, 10, 21, 10, 0, 0);   // 21 Nov 2026, 18:00 SGT (UTC+8). Before this the site is the ticket teaser.
+const TITLE_ON = false;     // "LIVE @ ARTS & MUSIC JAM" title: hidden until the organiser says to show it
+const MOMENTS_ON = false;   // guest photos on the banner + in profiles (also set Script Property MOMENTS=on)
+const TICKETS_URL = "https://www.onepa.gov.sg/events/marsiling-yn-rewind-arts-and-music-jam-2026-e39721790";
+// test only: ?now=2026-11-21T17:59:50%2B08:00 pretends it's that time
+const CLOCK_SKEW = (() => { try { const q = new URLSearchParams(location.search).get("now"); const t = q ? Date.parse(q) : NaN; return isFinite(t) ? t - Date.now() : 0; } catch (e) { return 0; } })();
+const nowMs = () => Date.now() + CLOCK_SKEW;
+const isTeaser = () => nowMs() < EVENT_START;
 const ADMIN_KEY_STORE = "amj26-admin-key";   // same key name as the costume form, so one unlock covers both
 const TOKEN_STORE = "amj26-fan-tokens";
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -1237,7 +1319,12 @@ function sheetStore() {
       if (!loaded) { loaded = true; emit([]); } else if (changes.length) emit(changes);
       if (banner.dataset.src === "sheet") { banner.hidden = true; delete banner.dataset.src; }
     } catch (e) {
-      if (++fails >= 3) { banner.textContent = "Can't reach the live feed. This screen keeps trying."; banner.dataset.src = "sheet"; banner.hidden = false; }
+      if (++fails >= 3) {
+        // show why (network block vs Apps Script error), so the crew can tell a venue-wifi problem from a backend one
+        const why = (e && (e.detail || e.message || e.name)) || "unknown";
+        banner.textContent = "Can't reach the live feed. This screen keeps trying. (" + String(why).slice(0, 120) + ")";
+        banner.dataset.src = "sheet"; banner.hidden = false;
+      }
     }
     timer = setTimeout(poll, pollMs());
   }
@@ -1248,7 +1335,7 @@ function sheetStore() {
     refresh: () => poll(),
     async add(data) {
       const body = { action: "fan", name: data.name, look: data.look, message: data.message || "" };
-      if (data.email) body.email = data.email;
+      if (data.email) { body.email = data.email; body.consent = data.consent === true; body.updates = data.updates === true; }
       const j = await sheetPost(body);
       saveToken(j.id, j.token);
       // older backends have no review step and send no status: treat as approved
@@ -1319,7 +1406,9 @@ const navStage = document.getElementById("nav-stage"), navStation = document.get
 const fsBtn = document.getElementById("fs-btn");
 let current = "stage", guest = false, crewPage = false;
 function route() {
-  const h = (location.hash || "").replace("#", "");
+  let h = (location.hash || "").replace("#", "");
+  // the old in-person station is crew-only now; guests get the join flow
+  if (h === "station" && !adminKey) { try { history.replaceState(null, "", location.pathname + location.search + "#join"); } catch (e) {} h = "join"; }
   // #join = guests' own phones (new step-by-step flow); #crew keeps the old station form behind the organiser panel
   // #crew = the organiser panel as a full page on a crew phone (the stage keeps its hidden panel as a backup)
   crewPage = h === "crew";
@@ -1328,15 +1417,18 @@ function route() {
   document.body.classList.toggle("guest", guest);
   document.body.classList.toggle("crew-page", crewPage);
   if (crewPage) { adminTab = "queue"; setTimeout(openAdmin, 0); }
-  views.stage.hidden = current !== "stage";
+  // on big screens the join flow floats over the live stage
+  const overlay = current === "guest" && innerWidth >= 520;
+  document.body.classList.toggle("join-open", current === "guest");
+  views.stage.hidden = !(current === "stage" || overlay);
   views.station.hidden = current !== "station";
   views.guest.hidden = current !== "guest";
-  nav.hidden = current === "guest" || current === "crew";
+  nav.hidden = current === "guest" || current === "crew" || !adminKey;
   if (current === "guest") gEnter();
   navStage.toggleAttribute("aria-current", false); navStation.toggleAttribute("aria-current", false);
   (current === "stage" ? navStage : navStation).setAttribute("aria-current", "page");
   fsBtn.hidden = current !== "stage";
-  if (current === "stage") { resizeScene(); requestWake(); }
+  if (current === "stage" || overlay) { resizeScene(); requestWake(); }
   wakeNav();
 }
 addEventListener("hashchange", () => { takeMagicLink(); route(); });
@@ -1361,9 +1453,34 @@ const ctx = scene.getContext("2d");
 const LH = 180; let LW = 320;
 const FLOOR_TOP = 104, FLOOR_BOT = 168;
 let stars = [];
-const view = { kx: 1, ky: 1, w: 0 };
+const view = { kx: 1, ky: 1, w: 0, oy: 0 };
 const backdrop = document.getElementById("backdrop"), momentWall = document.getElementById("moment-wall"), momentTag = document.getElementById("moment-tag");
 const BANNER_RATIO = 1775 / 344;
+const countdownEl = document.getElementById("countdown"), teaserCta = document.getElementById("teaser-cta");
+document.getElementById("tix").href = TICKETS_URL;
+document.getElementById("join-pre").addEventListener("click", () => { location.hash = "join"; });
+const hudTitle = document.getElementById("hud-title");
+const pad2 = n => String(n).padStart(2, "0");
+let teaserWas = null;
+function teaserTick() {
+  const on = isTeaser();
+  if (on !== teaserWas) {
+    teaserWas = on;
+    document.body.classList.toggle("teaser", on);
+    if (typeof gSyncYou === "function" && current === "guest" && G.screen === "you") gSyncYou();
+  }
+  hudTitle.hidden = !TITLE_ON;
+  document.body.classList.toggle("title-on", TITLE_ON && !on);
+  if (!on) return;
+  let left = Math.max(0, Math.floor((EVENT_START - nowMs()) / 1000));
+  const d = Math.floor(left / 86400); left %= 86400;
+  document.getElementById("cd-d").textContent = pad2(d);
+  document.getElementById("cd-h").textContent = pad2(Math.floor(left / 3600));
+  document.getElementById("cd-m").textContent = pad2(Math.floor(left % 3600 / 60));
+  document.getElementById("cd-s").textContent = pad2(left % 60);
+}
+document.body.classList.toggle("no-moments", !MOMENTS_ON);
+teaserTick(); setInterval(teaserTick, 1000);
 function stageGeom() {
   const cx = Math.round(LW / 2), sw = Math.round(Math.min(230, LW * 0.62)), sx = cx - Math.round(sw / 2);
   // wall sits between the lamps (y 30) and the DJ's head (y 66), so only the banner's bottom rule hides behind the DJ
@@ -1373,20 +1490,29 @@ function stageGeom() {
 }
 let geom = stageGeom();
 function resizeScene() {
-  const r = scene.getBoundingClientRect();
-  if (!r.width || !r.height) return;
-  LW = Math.max(240, Math.round(LH * r.width / r.height));
+  const host = views.stage.getBoundingClientRect();
+  if (!host.width || !host.height) return;
+  LW = Math.max(240, Math.round(LH * host.width / host.height));
+  // tall phone screens: keep square pixels (no stretched characters) by letterboxing the scene instead of filling the height
+  const ch = Math.min(host.height, Math.round(host.width * LH / LW));
+  const narrow = ch < host.height - 1;
+  const oy = narrow ? Math.max(Math.round(host.height * 0.1), Math.round((host.height - ch - 260) / 2)) : 0;
+  scene.style.top = narrow ? oy + "px" : ""; scene.style.height = narrow ? ch + "px" : "";
   scene.width = LW; scene.height = LH;
   ctx.imageSmoothingEnabled = false;
   geom = stageGeom();
-  const kx = r.width / LW, ky = r.height / LH, w = geom.wall;
-  view.kx = kx; view.ky = ky; view.w = r.width;
-  const box = { left: w.x * kx + "px", top: w.y * ky + "px", width: w.w * kx + "px", height: w.h * ky + "px" };
+  const kx = host.width / LW, ky = ch / LH, w = geom.wall;
+  view.kx = kx; view.ky = ky; view.w = host.width; view.oy = oy;
+  const box = { left: w.x * kx + "px", top: oy + w.y * ky + "px", width: w.w * kx + "px", height: w.h * ky + "px" };
   Object.assign(backdrop.style, box); Object.assign(momentWall.style, box); Object.assign(momentTag.style, box);
+  Object.assign(countdownEl.style, box);
+  countdownEl.style.fontSize = Math.max(9, Math.min(w.w * kx / 16, w.h * ky / 3)) + "px";
+  // big screens: just under the DJ booth (canvas y 92); phones: under the scene
+  teaserCta.style.top = (narrow ? oy + ch + 16 : Math.round(94 * ky)) + "px";
   stars = Array.from({ length: Math.round(LW / 5) }, () => ({ x: Math.floor(Math.random() * LW), y: Math.floor(Math.random() * 64), s: Math.random() * 3 + 1, o: Math.random() * 6 }));
   walkers.forEach(w => { w.x = Math.min(w.x, LW - 12); w.tx = Math.min(w.tx, LW - 12); });
 }
-addEventListener("resize", () => { if (current === "stage") resizeScene(); });
+addEventListener("resize", () => { if (!views.stage.hidden) resizeScene(); });
 
 const fans = new Map();          // id -> fan
 const sprites = new Map();       // id -> sprite set
@@ -1607,7 +1733,7 @@ function placeBubbles(t) {
     const w = walkers.find(x => x.id === b.id);
     if (!w || t > b.until) { dropBubble(b); return; }
     const bw = b.el.offsetWidth, bh = b.el.offsetHeight;
-    const sx = w.x * view.kx, sy = (w.y - 24) * view.ky;
+    const sx = w.x * view.kx, sy = view.oy + (w.y - 24) * view.ky;
     const left = Math.max(8, Math.min(view.w - bw - 8, sx - bw / 2));
     b.el.style.left = Math.round(left) + "px";
     b.el.style.top = Math.round(Math.max(8, sy - bh - 14)) + "px";
@@ -1649,6 +1775,7 @@ function wallSequence(ids) {
   return seq.concat(ids.filter(id => !seq.includes(id)).sort((a, b) => first(a) - first(b)));
 }
 async function refreshMoments() {
+  if (!MOMENTS_ON) { stageMoments.clear(); return; }
   if (current !== "stage") return;
   let j; try { j = await sheetGet({ action: "moments" }); } catch (e) { return; }   // older backend: no moments yet
   stageMoments.clear();
@@ -1762,7 +1889,7 @@ function release(ev) {
 let last = performance.now() / 1000;
 function frame() {
   requestAnimationFrame(frame);
-  if (current !== "stage" || !scene.width) return;
+  if (views.stage.hidden || !scene.width) return;
   const t = performance.now() / 1000; const dt = Math.min(0.05, t - last); last = t;
   const beat = t * BPM / 60, bi = Math.floor(beat), bp = beat - bi;
 
@@ -2057,6 +2184,9 @@ const gErr = code => code === "quota_exceeded" ? "The stage is full right now. A
   : code === "full" ? "You already have 3 moments. Remove one to add another."
   : code === "not_allowed" ? "This character can't be changed any more. Make a new one."
   : code === "drive" ? "Photos can't be saved yet. Show this to the crew at the booth."
+  : code === "moments_off" ? "Photos open at the Jam itself. Check back on 21 Nov!"
+  : code === "name_blocked" ? "That stage name isn't allowed. Pick a different one."
+  : code === "email_full" ? "This email already has 3 characters. Open your profile instead, or delete one first."
   : code === "server" ? "The stage had a hiccup. Try again, or show this to the crew at the booth."
   : "Couldn't reach the stage. Check your connection and try again.";
 
@@ -2080,6 +2210,7 @@ document.querySelectorAll("[data-g]").forEach(b => b.addEventListener("click", (
 
 /* landing */
 $g("g-start").addEventListener("click", () => { G.edit = false; gGo("look"); });
+$g("g-close").addEventListener("click", () => { location.hash = "stage"; });
 $g("g-have").addEventListener("click", () => gGo(currentId() ? "profile" : "find"));
 
 /* look */
@@ -2153,10 +2284,11 @@ $g("g-look-next").addEventListener("click", async () => {
   try {
     const j = await sheetPost({ action: "editFan", id, token: tok, look: sanitizeLook(G.draft) });
     const newLook = sanitizeLook(G.draft);
-    if (j.mode === "direct") { saveProfile(id, { look: newLook }); G.prof.look = newLook; }
+    if (j.mode === "direct" || j.mode === "live") { saveProfile(id, { look: newLook }); G.prof.look = newLook; }
     else { G.prof.pendingLook = newLook; G.prof.change = "pending"; }
     G.edit = false; gGo("profile");
-    gToast("CHANGE SENT", j.mode === "direct" ? "Your new look replaces the old one in the crew's queue." : "The crew will check your new look. Your current one stays on stage meanwhile.");
+    if (j.mode === "live") gToast("NEW LOOK IS LIVE", "Your character just changed on the stage.");
+    else gToast("CHANGE SENT", j.mode === "direct" ? "Your new look replaces the old one in the crew's queue." : "The crew will check your new look. Your current one stays on stage meanwhile.");
   } catch (e) {
     btn.disabled = false; btn.textContent = "SEND CHANGES TO THE CREW";
     $g("g-look-why").textContent = gErr(e.code); $g("g-look-why").classList.add("bad");
@@ -2164,10 +2296,12 @@ $g("g-look-next").addEventListener("click", async () => {
 });
 
 /* you */
-const gName = $g("g-name"), gTag = $g("g-tag"), gEmail = $g("g-email"), gOk = $g("g-ok");
-function gRenderYou() { gName.value = G.name; gTag.value = G.tag; gEmail.value = G.email; gOk.checked = G.ok; gSyncYou(); }
+const gName = $g("g-name"), gTag = $g("g-tag"), gEmail = $g("g-email"), gOk = $g("g-ok"), gUpd = $g("g-updates");
+function gRenderYou() { gName.value = G.name; gTag.value = G.tag; gEmail.value = G.email; gOk.checked = G.ok; gUpd.checked = !!G.updates; gSyncYou(); }
 function gSyncYou() {
-  G.name = cleanName(gName.value); G.tag = cleanMsg(gTag.value); G.email = gEmail.value.trim(); G.ok = gOk.checked;
+  // taglines need a person to check them, so they stay off during the pre-party
+  G.name = cleanName(gName.value); G.tag = isTeaser() ? "" : cleanMsg(gTag.value); G.email = gEmail.value.trim(); G.ok = gOk.checked;
+  G.updates = gUpd.checked;
   $g("g-n-count").textContent = gName.value.length + "/12"; $g("g-t-count").textContent = gTag.value.length + "/48";
   $g("g-bub-who").textContent = G.name || "PLAYER 1";
   $g("g-bub-say").textContent = G.tag || "Your tagline shows here";
@@ -2178,7 +2312,7 @@ function gSyncYou() {
   $g("g-you-next").disabled = !(G.name && emailOk(G.email) && G.ok);
 }
 [gName, gTag, gEmail].forEach(el => el.addEventListener("input", gSyncYou));
-gEmail.addEventListener("blur", gSyncYou); gOk.addEventListener("change", gSyncYou);
+gEmail.addEventListener("blur", gSyncYou); gOk.addEventListener("change", gSyncYou); gUpd.addEventListener("change", gSyncYou);
 $g("g-you-form").addEventListener("submit", ev => { ev.preventDefault(); if (!$g("g-you-next").disabled) gGo("review"); });
 $g("g-you-next").addEventListener("click", () => gGo("review"));
 
@@ -2189,26 +2323,27 @@ function gWearRows(l) {
 }
 function gRenderReview() {
   $g("g-r-name").textContent = G.name; $g("g-r-tag").textContent = G.tag ? "“" + G.tag + "”" : "No tagline";
-  $g("g-r-email").textContent = "Log back in with " + G.email;
+  $g("g-r-email").textContent = "Log back in with " + G.email + (G.updates ? " · Jam updates: yes" : "");
   $g("g-r-wear").replaceChildren(...gWearRows(G.draft).map(([k, v]) => {
     const d = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd");
     dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d;
   }));
-  $g("g-send-why").classList.remove("bad"); $g("g-send-why").textContent = "The crew checks every character before it goes on the big screen.";
-  $g("g-send").disabled = !store; $g("g-send").textContent = "SEND TO THE CREW";
+  $g("g-send-why").classList.remove("bad");
+  $g("g-send-why").textContent = isTeaser() ? "Your character joins the pre-party stage on this website." : "The crew checks every character before it goes on the big screen.";
+  $g("g-send").disabled = !store; $g("g-send").textContent = isTeaser() ? "JOIN THE PRE-PARTY" : "SEND TO THE CREW";
 }
 $g("g-send").addEventListener("click", async () => {
   if (G.sending || !store) return;
   G.sending = true; const btn = $g("g-send"); btn.disabled = true; btn.textContent = "SENDING…";
   try {
     const l = sanitizeLook(G.draft);
-    const res = (await store.add({ name: G.name, message: G.tag, look: l, email: G.email.trim(), createdAt: Date.now() })) || {};
+    const res = (await store.add({ name: G.name, message: G.tag, look: l, email: G.email.trim(), consent: G.ok === true, updates: G.updates === true, createdAt: Date.now() })) || {};
     saveProfile(res.id, { name: G.name, message: G.tag, look: l, email: G.email.trim(), createdAt: Date.now() });
     lsSet(CURRENT_STORE, res.id);
     G.prof = null; gGo("profile");
-    gToast("SENT!", res.status === "approved" ? "Look up at the big screen!" : "You'll drop onto the stage once the crew says yes.");
+    gToast("SENT!", res.status === "approved" ? (isTeaser() ? "You're on the pre-party stage. See you at the Jam!" : "Look up at the big screen!") : "You'll drop onto the stage once the crew says yes.");
   } catch (e) {
-    btn.disabled = false; btn.textContent = "SEND TO THE CREW";
+    btn.disabled = false; btn.textContent = isTeaser() ? "JOIN THE PRE-PARTY" : "SEND TO THE CREW";
     $g("g-send-why").textContent = gErr(e.code); $g("g-send-why").classList.add("bad");
   } finally { G.sending = false; }
 });
@@ -2405,6 +2540,20 @@ $g("g-photo").addEventListener("change", async ev => {
   G.uploading = null; gRenderProfile();
 });
 $g("g-edit").addEventListener("click", () => { G.edit = true; G.draft = { ...(G.prof ? G.prof.look : G.draft) }; gGo("look"); });
+$g("g-delete").addEventListener("click", async () => {
+  const b = $g("g-delete"), id = currentId(), tok = id && myTokens()[id];
+  if (!tok) return;
+  if (!b.classList.contains("armed")) { b.classList.add("armed"); b.textContent = "Tap again to delete for good"; setTimeout(() => { b.classList.remove("armed"); b.textContent = "Delete this character and my details"; }, 4000); return; }
+  b.disabled = true; b.textContent = "Deleting…";
+  try {
+    await sheetPost({ action: "removeFan", id, token: tok });
+    dropToken(id); const all = myProfiles(); delete all[id]; lsSet(PROFILE_STORE, JSON.stringify(all));
+    if (lsGet(CURRENT_STORE) === id) lsSet(CURRENT_STORE, null);
+    G.prof = null; gGo(currentId() ? "profile" : "landing");
+    gToast("DELETED", "Your character, email and photos are gone.");
+  } catch (e) { gToast("NOT DELETED", gErr(e.code), true); }
+  b.disabled = false; b.classList.remove("armed"); b.textContent = "Delete this character and my details";
+});
 $g("g-another").addEventListener("click", () => { G.edit = false; G.draft = randomLook(); G.name = ""; G.tag = ""; G.ok = false; gGo("look"); });
 
 /* character card: a PNG to keep */
@@ -2501,7 +2650,7 @@ async function loadEntries() {
   if (!adminKey || adminLoading) return;
   adminLoading = true;
   try {
-    const j = await sheetGet({ key: adminKey });
+    const j = await sheetPost({ action: "entries", key: adminKey });
     entries = (j.entries || []).filter(d => typeof d.pixels === "string" && d.pixels.length === 252).sort((a, b) => b.createdAt - a.createdAt);
     entriesErr = "";
   } catch (e) {
@@ -2515,7 +2664,7 @@ async function loadQueue() {
   if (!adminKey || queueLoading) return;
   queueLoading = true;
   try {
-    const j = await sheetGet({ action: "queue", key: adminKey });
+    const j = await sheetPost({ action: "queue", key: adminKey });
     if (!Array.isArray(j.pending)) {
       pending = []; reviewOn = null;
       queueErr = "The Apps Script is the older version. Paste the new Code.gs and redeploy to turn on the review queue.";
@@ -2559,7 +2708,7 @@ async function reviewChange(f, approve) {
 }
 async function loadLiveMoments() {
   if (!adminKey) return;
-  try { const j = await sheetGet({ action: "momentsAdmin", key: adminKey }); liveMoments = (j.moments || []).filter(m => String(m.thumb || "").indexOf("data:image/jpeg;base64,") === 0); liveMomLoaded = true; if (j.wall) crewWall = { mode: j.wall.mode === "shuffle" ? "shuffle" : "order", order: (j.wall.order || []).map(String) }; }
+  try { const j = await sheetPost({ action: "momentsAdmin", key: adminKey }); liveMoments = (j.moments || []).filter(m => String(m.thumb || "").indexOf("data:image/jpeg;base64,") === 0); liveMomLoaded = true; if (j.wall) crewWall = { mode: j.wall.mode === "shuffle" ? "shuffle" : "order", order: (j.wall.order || []).map(String) }; }
   catch (e) { if (!liveMomLoaded) queueErr = "Couldn't load the moments on the banner. Is the new Code.gs deployed?"; }
   renderAdmin();
 }
@@ -2868,6 +3017,21 @@ function renderAdmin() {
       row.append(c, info, b); adminList.append(row);
     });
   } else {
+    // emails of guests who ticked "Email me Jam updates" (only these may be emailed)
+    const tg = document.createElement("div"); tg.className = "admin-toggle";
+    const sp = document.createElement("span"); sp.textContent = "Guests who opted in to Jam update emails. Only email these.";
+    const cb = document.createElement("button"); cb.type = "button"; cb.textContent = "COPY UPDATE LIST";
+    cb.addEventListener("click", async () => {
+      cb.disabled = true; cb.textContent = "…";
+      try {
+        const j = await sheetPost({ action: "emailList", key: adminKey }), list = j.emails || [];
+        const text = list.join(", ");
+        try { await navigator.clipboard.writeText(text); cb.textContent = "COPIED " + list.length; }
+        catch (e) { sp.textContent = text || "Nobody has opted in yet."; cb.textContent = list.length + " EMAILS"; }
+      } catch (e) { cb.textContent = e.code === "unknown_action" ? "UPDATE SCRIPT" : "FAILED"; }
+      cb.disabled = false;
+    });
+    tg.append(sp, cb); adminList.append(tg);
     const every = [...fans.values()], matched = every.filter(hit);
     const list = matched.sort((a, b) => b.createdAt - a.createdAt).slice(0, 80);
     if (!every.length) { msg("No fans on the floor yet."); return; }
@@ -2932,13 +3096,13 @@ addEventListener("keydown", ev => {
 });
 document.getElementById("admin-close").addEventListener("click", closeAdmin);
 document.getElementById("admin-refresh").addEventListener("click", () => { loadEntries(); loadQueue(); refreshPieces(); });
-adminLock.addEventListener("click", () => { adminKey = ""; lsSet(ADMIN_KEY_STORE, null); entries = []; pending = []; changes = []; pendMoments = []; liveMoments = []; liveMomLoaded = false; renderAdmin(); if (lastRecent.length) renderRecent(lastRecent); });
+adminLock.addEventListener("click", () => { adminKey = ""; lsSet(ADMIN_KEY_STORE, null); setTimeout(route, 0); entries = []; pending = []; changes = []; pendMoments = []; liveMoments = []; liveMomLoaded = false; renderAdmin(); if (lastRecent.length) renderRecent(lastRecent); });
 adminKeyForm.addEventListener("submit", ev => {
   ev.preventDefault();
   const k = adminKeyIn.value.trim(); adminKeyIn.value = "";
   if (!k) return;
   adminKey = k; lsSet(ADMIN_KEY_STORE, k); adminKeyMsg.textContent = "";
-  renderAdmin(); loadEntries(); loadQueue();
+  renderAdmin(); loadEntries(); loadQueue(); route();
   if (lastRecent.length) renderRecent(lastRecent);
 });
 adminFind.addEventListener("click", () => { findOpen = !findOpen; if (!findOpen) { findQ = ""; adminQ.value = ""; } renderAdmin(); if (findOpen) adminQ.focus(); });
