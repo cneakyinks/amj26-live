@@ -597,6 +597,19 @@ body.teaser .teaser-cta { display: grid; position: absolute; left: 50%; transfor
   .banner { bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); }
   body.teaser .countdown { border-width: 2px; }
 }
+.teaser-cta .idea { font-family: var(--font-body); font-size: clamp(18px, 1.5vw, 22px); color: var(--gold); background: none; border: 0;
+  text-decoration: underline; text-underline-offset: 4px; padding: 2px 6px; text-shadow: 2px 2px 0 var(--shadow); }
+.teaser-cta .idea:hover, .teaser-cta .idea:focus-visible { color: var(--ink); }
+.idea-modal { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: 16px;
+  background: color-mix(in srgb, var(--void) 78%, transparent); }
+.idea-box { width: min(980px, 100%); height: min(900px, 100%); display: grid; grid-template-rows: auto auto minmax(0, 1fr);
+  background: var(--panel); border: 3px solid var(--line); box-shadow: 8px 8px 0 var(--shadow); }
+.idea-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 10px 10px 16px; border-bottom: 2px solid var(--line); }
+.idea-head h2 { margin: 0; font-family: var(--font-display); font-size: 12px; letter-spacing: .1em; color: var(--gold); }
+.idea-head button { width: 40px; height: 40px; background: var(--shadow); border: 2px solid var(--line); font-family: var(--font-display); font-size: 12px; }
+.idea-sub { margin: 0; padding: 8px 16px; font-size: 19px; color: var(--muted); }
+.idea-box iframe { width: 100%; height: 100%; border: 0; background: #0f0e0e; display: block; }
+@media (max-width: 600px) { .idea-modal { padding: 0; } .idea-box { height: 100%; border-width: 0; box-shadow: none; } }
 /* the join flow opens as a pop-up over the stage */
 body.join-open #guest { z-index: 40; background: color-mix(in srgb, var(--void) 70%, transparent); }
 @media (min-width: 520px) { body.join-open #guest .g-phone { height: min(100%, 880px); top: 50%; transform: translateY(-50%); border: 3px solid var(--line); box-shadow: 8px 8px 0 var(--shadow); } }
@@ -703,6 +716,7 @@ body.teaser #g-tag-fld { display: none; }
     <a class="tix" id="tix" target="_blank" rel="noopener">GET YOUR TICKETS NOW!</a>
     <p class="lure">This is only the warm-up. <b>Live DJ, your character on the big screen</b> and much more fun at the Jam. 21 Nov, Marsiling.</p>
     <button type="button" class="join" id="join-pre">MAKE YOUR CHARACTER · JOIN THE PRE-PARTY</button>
+    <button type="button" class="idea" id="idea-btn">✎ DESIGN A COSTUME PIECE FOR THE STAGE</button>
   </div>
   <div class="empty" id="empty">
     <h2>THE FLOOR IS OPEN</h2>
@@ -726,6 +740,18 @@ body.teaser #g-tag-fld { display: none; }
     <div class="ticker-track" id="ticker"><span>Waiting for the first fan…</span></div>
   </div>
 </section>
+
+<!-- costume call: the pixel form in a pop-up; pieces only go out once the crew features them -->
+<div class="idea-modal" id="idea-modal" role="dialog" aria-modal="true" aria-labelledby="idea-h" hidden>
+  <div class="idea-box">
+    <div class="idea-head">
+      <h2 id="idea-h">COSTUME CALL</h2>
+      <button type="button" id="idea-close" aria-label="Close the costume form">×</button>
+    </div>
+    <p class="idea-sub">Draw a hairstyle, top, bottoms or accessory. The crew picks the best ones, and guests can wear them on their characters.</p>
+    <iframe id="idea-frame" title="Costume Call: design a piece for the stage" loading="lazy" referrerpolicy="no-referrer"></iframe>
+  </div>
+</div>
 
 <!-- ============ STATION ============ -->
 <section class="view" id="station" aria-label="Character station" hidden>
@@ -1459,6 +1485,15 @@ const BANNER_RATIO = 1775 / 344;
 const countdownEl = document.getElementById("countdown"), teaserCta = document.getElementById("teaser-cta");
 document.getElementById("tix").href = TICKETS_URL;
 document.getElementById("join-pre").addEventListener("click", () => { location.hash = "join"; });
+// costume call pop-up (the separate pixel form; pieces only appear once the crew features them)
+const COSTUME_FORM_URL = "https://cneakyinks.github.io/pixelcostumeform/";
+const ideaModal = document.getElementById("idea-modal"), ideaFrame = document.getElementById("idea-frame"), ideaBtn = document.getElementById("idea-btn");
+function openIdea() { if (!ideaFrame.src) ideaFrame.src = COSTUME_FORM_URL; ideaModal.hidden = false; document.getElementById("idea-close").focus(); }
+function closeIdea() { ideaModal.hidden = true; ideaBtn.focus(); }
+ideaBtn.addEventListener("click", openIdea);
+document.getElementById("idea-close").addEventListener("click", closeIdea);
+ideaModal.addEventListener("click", ev => { if (ev.target === ideaModal) closeIdea(); });
+addEventListener("keydown", ev => { if (ev.key === "Escape" && !ideaModal.hidden) closeIdea(); });
 const hudTitle = document.getElementById("hud-title");
 const pad2 = n => String(n).padStart(2, "0");
 let teaserWas = null;
