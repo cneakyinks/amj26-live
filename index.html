@@ -381,6 +381,7 @@ body.crew-page .admin-key .crew-hi { display: block; }
 .crop-wall .pn.edit::after { content: ""; position: absolute; inset: 0; border-top: 3px solid var(--lime); border-bottom: 3px solid var(--lime); pointer-events: none; }
 .crop-big { position: relative; width: min(100%, calc(42vh * var(--pa, 1.8))); aspect-ratio: var(--pa, 1.8); margin: 0 auto; background: var(--shadow); touch-action: none; cursor: grab; border: 2px dashed var(--lime); }
 .crop-big .pn { position: absolute; inset: 0; }
+.crop-row[hidden], .crop-big[hidden], .crop-off[hidden] { display: none; }
 .crop-row { display: flex; align-items: center; gap: 8px; }
 .crop-row input[type=range] { flex: 1; accent-color: var(--lime); }
 .crop-row span { font-family: var(--font-display); font-size: 8px; color: var(--muted); }
@@ -388,6 +389,28 @@ body.crew-page .admin-key .crew-hi { display: block; }
 .crop .go { background: var(--lime); color: var(--shadow); border-color: var(--lime); }
 .crop .acts { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .crop .bad { color: var(--hot); font-size: 18px; margin: 0; }
+.crop-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.crop-pick .it { display: grid; gap: 4px; padding: 4px; background: var(--shadow); border: 2px solid var(--line); }
+.crop-pick .it.sel { border-color: var(--lime); }
+.crop-pick .it img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; cursor: pointer; }
+.crop-pick .it.off img { opacity: .35; }
+.crop .crop-pick .it button { padding: 6px 4px; font-size: 8px; }
+.crop .crop-pick .it button.ok { background: var(--lime); color: var(--shadow); border-color: var(--lime); }
+.crop .crop-pick .it button.no { border-color: var(--hot); color: var(--hot); }
+.crop-off { margin: 0; padding: 18px 10px; text-align: center; font-size: 18px; color: var(--muted); border: 2px dashed var(--line); }
+.mgroup { display: grid; gap: 8px; padding: 8px; background: var(--shadow); border: 2px solid transparent; cursor: pointer; }
+.mgroup.wait { border-color: var(--gold); }
+.mgroup .hd { display: flex; align-items: center; gap: 10px; }
+.mgroup .hd > div { flex: 1; min-width: 0; }
+.mgroup .t { font-family: var(--font-display); font-size: 10px; line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
+.mgroup .m { font-size: 18px; color: var(--muted); }
+.mgroup button { font-family: var(--font-display); font-size: 9px; letter-spacing: .08em; padding: 8px 10px; background: var(--shadow); border: 2px solid var(--line); color: var(--muted); }
+.mgroup button.ok { background: var(--lime); color: var(--shadow); border-color: var(--lime); }
+.mgroup .ph { display: flex; gap: 6px; }
+.mgroup .ph figure { margin: 0; position: relative; width: 64px; }
+.mgroup .ph img { width: 64px; height: 64px; object-fit: cover; display: block; }
+.mgroup .ph figcaption { font-family: var(--font-display); font-size: 6px; letter-spacing: .06em; text-align: center; padding: 3px 0; background: var(--line); color: var(--ink); }
+.mgroup .ph figcaption.w { background: var(--gold); color: var(--shadow); }
 
 /* ---------- Guest phones (#join): Look -> You -> Send -> Profile ---------- */
 #guest { background: var(--void);
@@ -586,15 +609,18 @@ body.crew-page .admin-key .crew-hi { display: block; }
   </div>
   <div class="crop" id="crop" role="dialog" aria-modal="true" aria-labelledby="crop-h" hidden>
     <div class="crop-body">
-      <h3 id="crop-h">FIT IT TO THE BANNER</h3>
+      <h3 id="crop-h">FIT TO THE BANNER</h3>
       <p class="hint" id="crop-who"></p>
       <div class="crop-stage"><div class="crop-wall moment-wall" id="crop-wall"></div></div>
-      <p class="hint">Drag the photo to move it. Zoom out to show the whole photo.</p>
+      <p class="hint">All of this guest's photos share the banner: 1, 2 or 3 panels. Tap a photo to fit it, or tap its label to leave it off.</p>
+      <div class="crop-pick" id="crop-pick"></div>
       <div class="crop-big" id="crop-big"></div>
-      <div class="crop-row"><span>WHOLE</span><input type="range" id="crop-z" min="1" max="8" step="0.05" value="1" aria-label="Zoom"><span>ZOOM</span></div>
-      <div class="crop-row"><button type="button" id="crop-fit">WHOLE PHOTO</button><button type="button" id="crop-fill">FILL PANEL</button></div>
+      <p class="crop-off" id="crop-offmsg" hidden>This photo won't be on the banner.</p>
+      <div class="crop-row" id="crop-zrow"><span>WHOLE</span><input type="range" id="crop-z" min="1" max="8" step="0.05" value="1" aria-label="Zoom"><span>ZOOM</span></div>
+      <div class="crop-row" id="crop-brow"><button type="button" id="crop-fit">WHOLE PHOTO</button><button type="button" id="crop-fill">FILL PANEL</button></div>
+      <p class="hint" id="crop-sum"></p>
       <p class="bad" id="crop-err" hidden></p>
-      <div class="acts"><button type="button" id="crop-cancel">CANCEL</button><button type="button" class="go" id="crop-go">APPROVE</button></div>
+      <div class="acts"><button type="button" id="crop-cancel">CANCEL</button><button type="button" class="go" id="crop-go">SAVE</button></div>
     </div>
   </div>
 </aside>
@@ -1619,11 +1645,12 @@ async function refreshMoments() {
     const fanId = String(m.fanId || ""), url = String(m.url || "");
     if (!fanId || !/^https:\/\/drive\.google\.com\//.test(url)) return;
     if (!stageMoments.has(fanId)) stageMoments.set(fanId, []);
-    stageMoments.get(fanId).push({ id: String(m.id), url, shownAt: Number(m.shownAt) || 0, crop: m.crop || null });
+    stageMoments.get(fanId).push({ id: String(m.id), url, shownAt: Number(m.shownAt) || 0, createdAt: Number(m.createdAt) || 0, crop: m.crop || null });
     // just approved: put this guest first in line and show them soon
     if (!seenMoments.has(m.id)) { seenMoments.add(m.id); if ((Number(m.shownAt) || 0) > pageLoad - 60000) { wallLast.set(fanId, -1); wallNext = Math.min(wallNext, nowS() + 4); } }
   });
-  stageMoments.forEach(list => list.sort((a, b) => b.shownAt - a.shownAt));
+  // panels run in upload order, same as the crew's banner preview
+  stageMoments.forEach(list => list.sort((a, b) => (a.createdAt - b.createdAt) || (a.shownAt - b.shownAt)));
 }
 function wallTick(t) {
   if (wallUntil && t > wallUntil) { wallUntil = 0; momentWall.classList.remove("show"); wallNext = t + WALL_EVERY; return; }
@@ -2512,19 +2539,6 @@ async function loadLiveMoments() {
   catch (e) { if (!liveMomLoaded) queueErr = "Couldn't load the moments on the banner. Is the new Code.gs deployed?"; }
   renderAdmin();
 }
-async function momentAction(m, action, approve, crop) {
-  queueBusy.add("mom:" + m.id); renderAdmin();
-  try {
-    await sheetPost({ action, key: adminKey, id: m.id, approve, crop });
-    pendMoments = pendMoments.filter(x => x.id !== m.id); liveMoments = liveMoments.filter(x => x.id !== m.id); queueErr = "";
-    if (action === "reviewMoment" && approve) loadLiveMoments();
-    refreshMoments();
-  } catch (e) {
-    if (e.code === "not_found") { pendMoments = pendMoments.filter(x => x.id !== m.id); liveMoments = liveMoments.filter(x => x.id !== m.id); }
-    queueErr = e.code === "unauthorized" ? "The admin key was rejected." : e.code === "not_found" ? "That one was already handled." : "Couldn't save. Try again.";
-  }
-  queueBusy.delete("mom:" + m.id); renderAdmin();
-}
 function confirmBtn(label, onGo) {
   const b = document.createElement("button"); b.type = "button"; b.textContent = label;
   b.addEventListener("click", () => {
@@ -2540,76 +2554,131 @@ async function setReview(on) {
   reviewBusy = false; renderAdmin();
 }
 
-/* --- crop editor: drag + zoom one photo, previewed inside the real banner layout for that guest --- */
+/* --- banner editor: one guest's photos together (1, 2 or 3 panels), fit each one, approve them in one go --- */
 const cropEl = document.getElementById("crop"), cropWall = document.getElementById("crop-wall"), cropBig = document.getElementById("crop-big");
 const cropZ = document.getElementById("crop-z"), cropErr = document.getElementById("crop-err"), cropGo = document.getElementById("crop-go");
-let cropM = null, cropLive = false, cropC = null, cropAR = 1, cropFgs = [];
-function cropPanelAR() {
-  // width / height of this photo's panel on the real banner (falls back to an even split)
-  const ed = cropWall.querySelector(".pn.edit"), r = ed && ed.getBoundingClientRect();
-  return r && r.width && r.height ? r.width / r.height : BANNER_RATIO / Math.max(1, cropWall.querySelectorAll(".pn").length);
+const cropPick = document.getElementById("crop-pick"), cropSum = document.getElementById("crop-sum");
+let grp = null, cropFgs = [], cropAR = 1;
+const selItem = () => grp && grp.items[grp.sel];
+function momentGroups() {
+  const by = new Map();
+  const add = (m, live) => {
+    if (!by.has(m.fanId)) by.set(m.fanId, { fanId: m.fanId, name: cleanName(m.name) || "FAN", items: [] });
+    by.get(m.fanId).items.push({ m, live });
+  };
+  pendMoments.forEach(m => add(m, false)); liveMoments.forEach(m => add(m, true));
+  const list = [...by.values()];
+  list.forEach(g => { g.items.sort((a, b) => (a.m.createdAt || 0) - (b.m.createdAt || 0)); g.waiting = g.items.filter(i => !i.live).length; });
+  const first = g => Math.min(...g.items.filter(i => !i.live).map(i => i.m.createdAt || 0));
+  const last = g => Math.max(...g.items.map(i => i.m.shownAt || i.m.createdAt || 0));
+  return list.sort((a, b) => (b.waiting ? 1 : 0) - (a.waiting ? 1 : 0) || (a.waiting ? first(a) - first(b) : last(b) - last(a)));
 }
-function cropPaint() { cropFgs.forEach(fg => setCrop(fg, cropC)); cropZ.value = String(cropC.z); }
-function openCrop(m, live) {
-  cropM = m; cropLive = live; cropC = { ...cropOf(m.crop) }; cropErr.hidden = true;
-  // the stage shows a guest's newest 3 approved photos; a photo being approved becomes the newest
-  const others = liveMoments.filter(x => x.fanId === m.fanId && x.id !== m.id);
-  let set = live ? liveMoments.filter(x => x.fanId === m.fanId) : [{ ...m, shownAt: Date.now() }].concat(others);
-  set = set.sort((a, b) => (b.shownAt || b.createdAt || 0) - (a.shownAt || a.createdAt || 0)).slice(0, 3);
-  if (!set.some(x => x.id === m.id)) set = [m].concat(set.slice(0, 2));
-  cropWall.className = "crop-wall moment-wall n" + set.length; cropWall.replaceChildren(); cropFgs = [];
-  set.forEach(x => {
-    const pn = momentPanel(x.thumb, x.id === m.id ? cropC : x.crop);
-    if (x.id === m.id) { pn.classList.add("edit"); cropFgs.push(pn.querySelector(".fg")); dragCrop(pn); }
+function openGroup(fanId) {
+  const g = momentGroups().find(x => x.fanId === fanId);
+  if (!g) return;
+  grp = { fanId, name: g.name, sel: Math.max(0, g.items.findIndex(i => !i.live)),
+    items: g.items.map(i => ({ m: i.m, live: i.live, keep: true, crop: { ...cropOf(i.m.crop) }, crop0: JSON.stringify(cropOf(i.m.crop)) })) };
+  cropErr.hidden = true; cropGo.disabled = false;
+  cropEl.hidden = false; renderGroup(); cropGo.focus();
+}
+function renderGroup() {
+  const kept = grp.items.filter(i => i.keep).slice(0, 3), it = selItem();
+  // banner preview, exactly as the stage lays it out
+  cropWall.className = "crop-wall moment-wall n" + Math.max(1, kept.length); cropWall.replaceChildren(); cropFgs = [];
+  kept.forEach(i => {
+    const pn = momentPanel(i.m.thumb, i.crop);
+    if (i === it) { pn.classList.add("edit"); cropFgs.push(pn.querySelector(".fg")); dragCrop(pn); }
+    else pn.addEventListener("click", () => { grp.sel = grp.items.indexOf(i); renderGroup(); });
     cropWall.append(pn);
   });
-  const tag = document.createElement("span"); tag.className = "tag"; tag.textContent = cleanName(m.name) || "FAN"; cropWall.append(tag);
-  document.getElementById("crop-who").textContent = (cleanName(m.name) || "FAN") + (set.length > 1 ? " · " + set.length + " photos share the banner" : " · this photo fills the banner");
-  cropGo.textContent = live ? "SAVE" : "APPROVE"; cropGo.disabled = false;
-  cropEl.hidden = false;
-  requestAnimationFrame(() => {
-    cropAR = cropPanelAR(); cropBig.style.setProperty("--pa", String(cropAR));
-    cropBig.replaceChildren(); const big = momentPanel(m.thumb, cropC); cropBig.append(big); cropFgs.push(big.querySelector(".fg"));
+  if (kept.length) { const tag = document.createElement("span"); tag.className = "tag"; tag.textContent = grp.name; cropWall.append(tag); }
+  document.getElementById("crop-who").textContent = grp.name + " · " + (kept.length ? kept.length + (kept.length === 1 ? " photo fills the banner" : " photos share the banner") : "nothing on the banner");
+  // every photo from this guest, with what will happen to it
+  cropPick.replaceChildren();
+  grp.items.forEach((i, n) => {
+    const d = document.createElement("div"); d.className = "it" + (n === grp.sel ? " sel" : "") + (i.keep ? "" : " off");
+    const img = document.createElement("img"); img.src = i.m.thumb; img.alt = "Photo " + (n + 1);
+    img.addEventListener("click", () => { grp.sel = n; renderGroup(); });
+    const b = document.createElement("button"); b.type = "button";
+    b.textContent = i.live ? (i.keep ? "ON BANNER" : "TAKE DOWN") : (i.keep ? "APPROVE" : "REJECT");
+    b.className = i.keep ? (i.live ? "" : "ok") : "no";
+    b.setAttribute("aria-label", (i.keep ? "Will be " : "Won't be ") + "on the banner. Tap to change.");
+    b.addEventListener("click", () => { i.keep = !i.keep; grp.sel = n; renderGroup(); });
+    d.append(img, b); cropPick.append(d);
+  });
+  // big editor for the selected photo
+  cropBig.replaceChildren();
+  const on = it && it.keep;
+  document.getElementById("crop-zrow").hidden = document.getElementById("crop-brow").hidden = !on;
+  cropBig.hidden = !on;
+  document.getElementById("crop-offmsg").hidden = on;
+  const n = { approve: 0, reject: 0, down: 0, fit: 0 };
+  grp.items.forEach(i => { if (!i.live) n[i.keep ? "approve" : "reject"]++; else if (!i.keep) n.down++; else if (JSON.stringify(i.crop) !== i.crop0) n.fit++; });
+  cropSum.textContent = [n.approve && "Approve " + n.approve, n.reject && "Reject " + n.reject, n.down && "Take down " + n.down, n.fit && "Refit " + n.fit].filter(Boolean).join(" · ") || "No changes yet.";
+  if (grp.items.filter(i => i.keep).length > 3) cropSum.textContent += " · Only 3 fit: the newest one is left off.";
+  if (on) requestAnimationFrame(() => {
+    if (!grp || selItem() !== it) return;
+    const ed = cropWall.querySelector(".pn.edit"), r = ed && ed.getBoundingClientRect();
+    cropAR = r && r.width && r.height ? r.width / r.height : BANNER_RATIO / Math.max(1, kept.length);
+    cropBig.style.setProperty("--pa", String(cropAR));
+    const big = momentPanel(it.m.thumb, it.crop); cropBig.append(big); cropFgs.push(big.querySelector(".fg"));
     cropPaint();
   });
-  dragCrop(cropBig);
-  cropGo.focus();
+  cropPaint();
 }
-function closeCrop() { cropEl.hidden = true; cropM = null; cropWall.replaceChildren(); cropBig.replaceChildren(); cropFgs = []; }
+function cropPaint() { const it = selItem(); if (!it) return; cropFgs.forEach(fg => setCrop(fg, it.crop)); cropZ.value = String(it.crop.z); }
+function closeCrop() { cropEl.hidden = true; grp = null; cropWall.replaceChildren(); cropBig.replaceChildren(); cropPick.replaceChildren(); cropFgs = []; }
 // zooming about a focus point o moves the photo by -(z-1)*o, so a drag of dx px moves o by -dx / ((z-1) * width)
 function dragCrop(el) {
   if (el.dataset.drag) return; el.dataset.drag = "1";
   let start = null;
-  el.addEventListener("pointerdown", ev => { if (!cropM) return; start = { x: ev.clientX, y: ev.clientY, c: { ...cropC }, r: el.getBoundingClientRect() }; el.setPointerCapture(ev.pointerId); ev.preventDefault(); });
+  el.addEventListener("pointerdown", ev => { const it = selItem(); if (!it) return; start = { x: ev.clientX, y: ev.clientY, c: { ...it.crop }, r: el.getBoundingClientRect() }; el.setPointerCapture(ev.pointerId); ev.preventDefault(); });
   el.addEventListener("pointermove", ev => {
-    if (!start || cropC.z <= 1.001) return;
-    const k = cropC.z - 1, cl = v => Math.max(0, Math.min(100, v));
-    cropC.x = cl(start.c.x - (ev.clientX - start.x) / (k * start.r.width) * 100);
-    cropC.y = cl(start.c.y - (ev.clientY - start.y) / (k * start.r.height) * 100);
+    const it = selItem();
+    if (!start || !it || it.crop.z <= 1.001) return;
+    const k = it.crop.z - 1, cl = v => Math.max(0, Math.min(100, v));
+    it.crop.x = cl(start.c.x - (ev.clientX - start.x) / (k * start.r.width) * 100);
+    it.crop.y = cl(start.c.y - (ev.clientY - start.y) / (k * start.r.height) * 100);
     cropPaint();
   });
-  const end = () => { start = null; };
+  const end = () => { if (start && grp) renderSumOnly(); start = null; };
   el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
 }
-cropZ.addEventListener("input", () => { cropC.z = Number(cropZ.value) || 1; cropPaint(); });
-document.getElementById("crop-fit").addEventListener("click", () => { cropC = { x: 50, y: 50, z: 1 }; cropPaint(); });
+function renderSumOnly() { const sel = grp.sel; renderGroup(); grp.sel = sel; }
+cropZ.addEventListener("input", () => { const it = selItem(); if (!it) return; it.crop.z = Number(cropZ.value) || 1; cropPaint(); });
+cropZ.addEventListener("change", () => { if (grp) renderSumOnly(); });
+document.getElementById("crop-fit").addEventListener("click", () => { const it = selItem(); if (!it) return; it.crop = { x: 50, y: 50, z: 1 }; renderGroup(); });
 document.getElementById("crop-fill").addEventListener("click", () => {
-  const fg = cropFgs[0], ia = fg && fg.naturalWidth ? fg.naturalWidth / fg.naturalHeight : 1;
-  cropC.z = Math.min(8, Math.max(1, Math.round(Math.max(cropAR / ia, ia / cropAR) * 100) / 100)); cropPaint();
+  const it = selItem(), fg = cropFgs[0]; if (!it) return;
+  const ia = fg && fg.naturalWidth ? fg.naturalWidth / fg.naturalHeight : 1;
+  it.crop.z = Math.min(8, Math.max(1, Math.round(Math.max(cropAR / ia, ia / cropAR) * 100) / 100)); renderGroup();
 });
 document.getElementById("crop-cancel").addEventListener("click", closeCrop);
 cropEl.addEventListener("keydown", ev => { if (ev.key === "Escape") { ev.stopPropagation(); closeCrop(); } });
 cropGo.addEventListener("click", async () => {
-  if (!cropM) return;
-  const m = cropM, crop = { x: Math.round(cropC.x), y: Math.round(cropC.y), z: Math.round(cropC.z * 100) / 100 };
-  if (!cropLive) { closeCrop(); momentAction(m, "reviewMoment", true, crop); return; }
+  if (!grp) return;
+  const round = c => ({ x: Math.round(c.x), y: Math.round(c.y), z: Math.round(c.z * 100) / 100 });
+  // only 3 panels: anything past the third kept photo stays waiting / gets left as is
+  let room = 3;
+  const items = [];
+  grp.items.forEach(i => {
+    const fits = i.keep && room > 0; if (fits) room--;
+    if (!i.live) { if (!i.keep) items.push({ id: i.m.id, do: "reject" }); else if (fits) items.push({ id: i.m.id, do: "approve", crop: round(i.crop) }); }
+    else if (!i.keep) items.push({ id: i.m.id, do: "remove" });
+    else if (JSON.stringify(i.crop) !== i.crop0) items.push({ id: i.m.id, do: "crop", crop: round(i.crop) });
+  });
+  if (!items.length) { closeCrop(); return; }
   cropGo.disabled = true; cropGo.textContent = "SAVING…";
   try {
-    await sheetPost({ action: "cropMoment", key: adminKey, id: m.id, crop });
-    m.crop = crop; closeCrop(); refreshMoments(); renderAdmin();
+    await sheetPost({ action: "saveMoments", key: adminKey, items });
+    const gone = new Set(items.filter(x => x.do !== "crop").map(x => x.id));
+    items.filter(x => x.do === "crop").forEach(x => { const m = liveMoments.find(l => l.id === x.id); if (m) m.crop = x.crop; });
+    pendMoments = pendMoments.filter(m => !gone.has(m.id)); liveMoments = liveMoments.filter(m => !gone.has(m.id));
+    closeCrop(); queueErr = ""; renderAdmin(); loadLiveMoments(); refreshMoments();
   } catch (e) {
     cropGo.disabled = false; cropGo.textContent = "SAVE";
-    cropErr.textContent = e.code === "unknown_action" ? "Paste the new Code.gs and redeploy to save adjustments." : "Couldn't save. Try again."; cropErr.hidden = false;
+    cropErr.textContent = e.code === "unknown_action" ? "Paste the new Code.gs and redeploy first." : e.code === "unauthorized" ? "The crew key was rejected." : "Couldn't save. Try again.";
+    cropErr.hidden = false;
   }
 });
 
@@ -2695,36 +2764,37 @@ function renderAdmin() {
     });
   } else if (adminTab === "moments") {
     if (queueErr) msg(queueErr);
-    const momRow = (m, live) => {
-      const row = document.createElement("div"); row.className = "admin-row mom";
-      const img = document.createElement("img"); img.className = "thumb"; img.src = m.thumb; img.alt = "Photo from " + m.name;
-      const info = document.createElement("div");
-      const t = document.createElement("div"); t.className = "t"; t.textContent = cleanName(m.name) || "FAN";
-      const tm = document.createElement("div"); tm.className = "m"; tm.textContent = fmtWhen(m.createdAt); info.append(t, tm);
-      const acts = document.createElement("div"); acts.className = "acts";
-      const busyM = queueBusy.has("mom:" + m.id);
-      if (live) {
-        const adj = document.createElement("button"); adj.type = "button"; adj.textContent = "ADJUST"; adj.disabled = busyM;
-        adj.addEventListener("click", () => openCrop(m, true));
-        const rm = confirmBtn("REMOVE", () => momentAction(m, "removeMoment")); rm.disabled = busyM; acts.append(adj, rm);
-      }
-      else {
-        const ok = document.createElement("button"); ok.type = "button"; ok.className = "ok"; ok.textContent = busyM ? "…" : "APPROVE";
-        ok.addEventListener("click", () => openCrop(m, false));
-        const no = confirmBtn("REJECT", () => momentAction(m, "reviewMoment", false));
-        ok.disabled = no.disabled = busyM; acts.append(ok, no);
-      }
-      img.addEventListener("click", () => openCrop(m, live)); img.style.cursor = "pointer";
-      row.append(img, info, acts); adminList.append(row);
-    };
     const sub = t => { const h = document.createElement("p"); h.className = "admin-sub"; h.textContent = t; adminList.append(h); };
+    const groups = momentGroups(), waiting = groups.filter(g => g.waiting), live = groups.filter(g => !g.waiting);
+    const card = g => {
+      const d = document.createElement("div"); d.className = "mgroup" + (g.waiting ? " wait" : "");
+      d.setAttribute("role", "button"); d.tabIndex = 0; d.setAttribute("aria-label", "Fit " + g.name + "'s photos to the banner");
+      const hd = document.createElement("div"); hd.className = "hd";
+      const info = document.createElement("div");
+      const t = document.createElement("div"); t.className = "t"; t.textContent = g.name;
+      const onB = g.items.length - g.waiting;
+      const m = document.createElement("div"); m.className = "m"; m.textContent = [g.waiting && g.waiting + " waiting", onB && onB + " on the banner"].filter(Boolean).join(" · ");
+      info.append(t, m);
+      const b = document.createElement("button"); b.type = "button"; b.textContent = g.waiting ? "REVIEW" : "ADJUST"; if (g.waiting) b.className = "ok";
+      hd.append(info, b);
+      const ph = document.createElement("div"); ph.className = "ph";
+      g.items.forEach(i => {
+        const f = document.createElement("figure"), img = document.createElement("img"), c = document.createElement("figcaption");
+        img.src = i.m.thumb; img.alt = ""; c.textContent = i.live ? "ON" : "WAITING"; if (!i.live) c.className = "w";
+        f.append(img, c); ph.append(f);
+      });
+      d.append(hd, ph);
+      const go = () => openGroup(g.fanId);
+      d.addEventListener("click", go); d.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); go(); } });
+      adminList.append(d);
+    };
     sub("WAITING");
-    if (!pendMoments.length) msg("No photos waiting. Guests add them from their profile.");
-    pendMoments.forEach(m => momRow(m, false));
+    if (!waiting.length) msg("No photos waiting. Guests add up to 3 from their profile.");
+    waiting.forEach(card);
     sub("ON THE BANNER");
     if (!liveMomLoaded) msg("Loading…");
-    else if (!liveMoments.length) msg("None yet. Approved photos pop up on the stage banner every " + WALL_EVERY + " seconds or so.");
-    liveMoments.forEach(m => momRow(m, true));
+    else if (!live.length && !waiting.some(g => g.items.some(i => i.live))) msg("None yet. Approved photos pop up on the stage banner every " + WALL_EVERY + " seconds or so.");
+    live.forEach(card);
   } else if (adminTab === "entries") {
     if (entriesErr) msg(entriesErr);
     if (!entries.length) { msg(entriesErr ? "" : "No costume entries yet. They appear here as the form is submitted."); return; }
