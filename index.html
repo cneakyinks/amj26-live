@@ -349,7 +349,10 @@ body.guest .station-wrap { padding-top: 24px; }
 .pn img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 .pn img.bg { object-fit: cover; filter: blur(6px) brightness(.55) saturate(1.2); transform: scale(1.15); }
 .pn img.fg { object-fit: contain; }
-.moment-wall .tag { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); z-index: 1; white-space: nowrap; font-family: var(--font-display); font-size: clamp(6px, .75vw, 12px); letter-spacing: .1em;
+/* the name sits above the stage drawing (the DJ booth covers the banner's lower middle), top centre of the banner */
+.moment-tag { position: absolute; pointer-events: none; opacity: 0; transition: opacity .3s steps(3); }
+.moment-tag.show { opacity: 1; }
+.moment-wall .tag, .moment-tag .tag { position: absolute; left: 50%; top: 7%; transform: translateX(-50%); z-index: 1; white-space: nowrap; font-family: var(--font-display); font-size: clamp(6px, .75vw, 12px); letter-spacing: .1em;
   color: var(--shadow); background: var(--gold); padding: .4em .7em; box-shadow: 0 0 0 2px var(--shadow); }
 
 /* ---------- Organiser extras ---------- */
@@ -630,6 +633,7 @@ body.crew-page .admin-key .crew-hi { display: block; }
   <img id="backdrop" class="backdrop" src="banner.jpg" alt="Marsiling's Arts &amp; Music Jam 2026: Discover. Connect. Create!">
   <div class="moment-wall" id="moment-wall" aria-hidden="true"></div>
   <canvas id="scene"></canvas>
+  <div class="moment-tag" id="moment-tag" aria-hidden="true"><span class="tag" id="moment-tag-t"></span></div>
   <div class="bubbles" id="bubbles" aria-hidden="true"></div>
   <div class="hud-count" aria-live="polite">
     <span class="label">FANS ON THE FLOOR</span>
@@ -1358,7 +1362,7 @@ const LH = 180; let LW = 320;
 const FLOOR_TOP = 104, FLOOR_BOT = 168;
 let stars = [];
 const view = { kx: 1, ky: 1, w: 0 };
-const backdrop = document.getElementById("backdrop"), momentWall = document.getElementById("moment-wall");
+const backdrop = document.getElementById("backdrop"), momentWall = document.getElementById("moment-wall"), momentTag = document.getElementById("moment-tag");
 const BANNER_RATIO = 1775 / 344;
 function stageGeom() {
   const cx = Math.round(LW / 2), sw = Math.round(Math.min(230, LW * 0.62)), sx = cx - Math.round(sw / 2);
@@ -1378,7 +1382,7 @@ function resizeScene() {
   const kx = r.width / LW, ky = r.height / LH, w = geom.wall;
   view.kx = kx; view.ky = ky; view.w = r.width;
   const box = { left: w.x * kx + "px", top: w.y * ky + "px", width: w.w * kx + "px", height: w.h * ky + "px" };
-  Object.assign(backdrop.style, box); Object.assign(momentWall.style, box);
+  Object.assign(backdrop.style, box); Object.assign(momentWall.style, box); Object.assign(momentTag.style, box);
   stars = Array.from({ length: Math.round(LW / 5) }, () => ({ x: Math.floor(Math.random() * LW), y: Math.floor(Math.random() * 64), s: Math.random() * 3 + 1, o: Math.random() * 6 }));
   walkers.forEach(w => { w.x = Math.min(w.x, LW - 12); w.tx = Math.min(w.tx, LW - 12); });
 }
@@ -1634,9 +1638,16 @@ function momentPanel(src, crop) {
 const WALL_EVERY = 35;            // seconds between banner takeovers
 const WALL_SECS = 9;              // how long each takeover stays up
 const stageMoments = new Map();   // fanId -> [{ id, url, shownAt }]
-const wallLast = new Map();       // fanId -> when their moments were last on the banner
 const seenMoments = new Set();
+// rotation is set by the crew: "order" = carousel in their sequence, "shuffle" = random; nothing ever drops out
+let wallCfg = { mode: "order", order: [], next: "", nextAt: 0 }, wallFresh = [], wallPrev = "", wallNextSeen = 0;
 let wallNext = 15, wallUntil = 0, wallLoading = false;
+function wallSequence(ids) {
+  // the crew's order first, then anyone not placed yet in the order their first photo came in
+  const first = id => Math.min(...stageMoments.get(id).map(m => m.createdAt || m.shownAt || 0));
+  const set = new Set(ids), seq = wallCfg.order.filter(id => set.has(id));
+  return seq.concat(ids.filter(id => !seq.includes(id)).sort((a, b) => first(a) - first(b)));
+}
 async function refreshMoments() {
   if (current !== "stage") return;
   let j; try { j = await sheetGet({ action: "moments" }); } catch (e) { return; }   // older backend: no moments yet
@@ -1647,31 +1658,44 @@ async function refreshMoments() {
     if (!stageMoments.has(fanId)) stageMoments.set(fanId, []);
     stageMoments.get(fanId).push({ id: String(m.id), url, shownAt: Number(m.shownAt) || 0, createdAt: Number(m.createdAt) || 0, crop: m.crop || null });
     // just approved: put this guest first in line and show them soon
-    if (!seenMoments.has(m.id)) { seenMoments.add(m.id); if ((Number(m.shownAt) || 0) > pageLoad - 60000) { wallLast.set(fanId, -1); wallNext = Math.min(wallNext, nowS() + 4); } }
+    if (!seenMoments.has(m.id)) { seenMoments.add(m.id); if ((Number(m.shownAt) || 0) > pageLoad - 60000 && !wallFresh.includes(fanId)) { wallFresh.push(fanId); wallNext = Math.min(wallNext, nowS() + 4); } }
   });
+  if (j.wall) {
+    wallCfg = { mode: j.wall.mode === "shuffle" ? "shuffle" : "order", order: Array.isArray(j.wall.order) ? j.wall.order.map(String) : [], next: String(j.wall.next || ""), nextAt: Number(j.wall.nextAt) || 0 };
+    // crew tapped SHOW NEXT: jump the line (only for taps made after this screen opened)
+    if (wallCfg.nextAt > Math.max(wallNextSeen, pageLoad - 60000)) { wallNextSeen = wallCfg.nextAt; wallFresh = [wallCfg.next].concat(wallFresh.filter(x => x !== wallCfg.next)); wallNext = Math.min(wallNext, nowS() + 3); }
+  }
   // panels run in upload order, same as the crew's banner preview
   stageMoments.forEach(list => list.sort((a, b) => (a.createdAt - b.createdAt) || (a.shownAt - b.shownAt)));
 }
 function wallTick(t) {
-  if (wallUntil && t > wallUntil) { wallUntil = 0; momentWall.classList.remove("show"); wallNext = t + WALL_EVERY; return; }
+  if (wallUntil && t > wallUntil) { wallUntil = 0; momentWall.classList.remove("show"); momentTag.classList.remove("show"); wallNext = t + WALL_EVERY; return; }
   if (wallUntil || wallLoading || t < wallNext || popping) return;
   const ids = [...stageMoments.keys()].filter(id => fans.has(id));
   if (!ids.length) { wallNext = t + 5; return; }
-  ids.sort((a, b) => (wallLast.get(a) || 0) - (wallLast.get(b) || 0));
-  const id = ids[0], list = stageMoments.get(id).slice(0, 3);
+  wallFresh = wallFresh.filter(x => stageMoments.has(x));
+  let id = wallFresh.find(x => ids.includes(x));
+  if (id) wallFresh = wallFresh.filter(x => x !== id);
+  else if (wallCfg.mode === "shuffle") { const pool = ids.length > 1 ? ids.filter(x => x !== wallPrev) : ids; id = pool[Math.floor(Math.random() * pool.length)]; }
+  else { const seq = wallSequence(ids); id = seq[(seq.indexOf(wallPrev) + 1) % seq.length]; }
+  wallPrev = id;
+  const list = stageMoments.get(id).slice(0, 3);
   wallLoading = true;
   Promise.all(list.map(m => new Promise(res => {
-    const img = new Image(); img.onload = () => res(img); img.onerror = () => res(null); img.src = m.url; setTimeout(() => res(null), 6000);
+    // Drive's thumbnail link sometimes fails (busy, or a signed-in browser); the direct image host is the fallback
+    const img = new Image(), fid = (m.url.match(/[?&]id=([\w-]+)/) || [])[1];
+    img.onload = () => res(img);
+    img.onerror = () => { if (fid && img.src.indexOf("lh3.") < 0) img.src = "https://lh3.googleusercontent.com/d/" + fid + "=w1600"; else res(null); };
+    img.src = m.url; setTimeout(() => res(null), 9000);
   }))).then(imgs => {
     wallLoading = false;
     const now = nowS(), ok = imgs.map((img, i) => img && { img, crop: list[i].crop }).filter(Boolean), f = fans.get(id);
-    wallLast.set(id, now);
     if (!ok.length || !f) { wallNext = now + 5; return; }
     momentWall.replaceChildren();
     momentWall.className = "moment-wall n" + ok.length;
     ok.forEach(o => momentWall.append(momentPanel(o.img.src, o.crop)));
-    const tag = document.createElement("span"); tag.className = "tag"; tag.textContent = f.name; momentWall.append(tag);
-    void momentWall.offsetWidth; momentWall.classList.add("show");
+    document.getElementById("moment-tag-t").textContent = f.name;
+    void momentWall.offsetWidth; momentWall.classList.add("show"); momentTag.classList.add("show");
     wallUntil = now + WALL_SECS;
     if (walkers.some(w => w.id === id && (w.state === "idle" || w.state === "walk"))) say(id, "THAT'S ME!", 4);
   });
@@ -2535,7 +2559,7 @@ async function reviewChange(f, approve) {
 }
 async function loadLiveMoments() {
   if (!adminKey) return;
-  try { const j = await sheetGet({ action: "momentsAdmin", key: adminKey }); liveMoments = (j.moments || []).filter(m => String(m.thumb || "").indexOf("data:image/jpeg;base64,") === 0); liveMomLoaded = true; }
+  try { const j = await sheetGet({ action: "momentsAdmin", key: adminKey }); liveMoments = (j.moments || []).filter(m => String(m.thumb || "").indexOf("data:image/jpeg;base64,") === 0); liveMomLoaded = true; if (j.wall) crewWall = { mode: j.wall.mode === "shuffle" ? "shuffle" : "order", order: (j.wall.order || []).map(String) }; }
   catch (e) { if (!liveMomLoaded) queueErr = "Couldn't load the moments on the banner. Is the new Code.gs deployed?"; }
   renderAdmin();
 }
@@ -2552,6 +2576,20 @@ async function setReview(on) {
   try { await sheetPost({ action: "setReview", key: adminKey, on }); reviewOn = on; queueErr = ""; }
   catch (e) { queueErr = "Couldn't change the setting. Try again."; }
   reviewBusy = false; renderAdmin();
+}
+
+/* --- banner rotation: crew picks shuffle or a set order, can resequence and push someone next. Nothing is deleted. --- */
+let crewWall = { mode: "order", order: [] }, wallBusy = "";
+function crewSequence(groups) {
+  const first = g => Math.min(...g.items.filter(i => i.live).map(i => i.m.createdAt || 0));
+  const placed = crewWall.order.map(id => groups.find(g => g.fanId === id)).filter(Boolean);
+  return placed.concat(groups.filter(g => !placed.includes(g)).sort((a, b) => first(a) - first(b)));
+}
+async function saveWall(body, what) {
+  wallBusy = what; renderAdmin();
+  try { const j = await sheetPost({ action: "setWall", key: adminKey, ...body }); if (j.wall) crewWall = { mode: j.wall.mode, order: (j.wall.order || []).map(String) }; queueErr = what.indexOf("next:") === 0 ? "Coming up next on the banner (within about 30 seconds)." : ""; if (queueErr) setTimeout(() => { if (queueErr.indexOf("Coming up next") === 0) { queueErr = ""; renderAdmin(); } }, 6000); }
+  catch (e) { queueErr = e.code === "unknown_action" ? "Paste the new Code.gs and redeploy to change the rotation." : "Couldn't save. Try again."; }
+  wallBusy = ""; renderAdmin();
 }
 
 /* --- banner editor: one guest's photos together (1, 2 or 3 panels), fit each one, approve them in one go --- */
@@ -2765,18 +2803,27 @@ function renderAdmin() {
   } else if (adminTab === "moments") {
     if (queueErr) msg(queueErr);
     const sub = t => { const h = document.createElement("p"); h.className = "admin-sub"; h.textContent = t; adminList.append(h); };
-    const groups = momentGroups(), waiting = groups.filter(g => g.waiting), live = groups.filter(g => !g.waiting);
-    const card = g => {
-      const d = document.createElement("div"); d.className = "mgroup" + (g.waiting ? " wait" : "");
+    const groups = momentGroups(), waiting = groups.filter(g => g.waiting);
+    const onBanner = crewSequence(groups.filter(g => g.items.some(i => i.live))), ordered = crewWall.mode === "order";
+    const card = (g, pos) => {
+      const d = document.createElement("div"); d.className = "mgroup" + (pos == null ? " wait" : "");
       d.setAttribute("role", "button"); d.tabIndex = 0; d.setAttribute("aria-label", "Fit " + g.name + "'s photos to the banner");
       const hd = document.createElement("div"); hd.className = "hd";
       const info = document.createElement("div");
-      const t = document.createElement("div"); t.className = "t"; t.textContent = g.name;
+      const t = document.createElement("div"); t.className = "t"; t.textContent = (pos != null && ordered ? "#" + (pos + 1) + " " : "") + g.name;
       const onB = g.items.length - g.waiting;
       const m = document.createElement("div"); m.className = "m"; m.textContent = [g.waiting && g.waiting + " waiting", onB && onB + " on the banner"].filter(Boolean).join(" · ");
-      info.append(t, m);
-      const b = document.createElement("button"); b.type = "button"; b.textContent = g.waiting ? "REVIEW" : "ADJUST"; if (g.waiting) b.className = "ok";
-      hd.append(info, b);
+      info.append(t, m); hd.append(info);
+      const btn = (label, fn, cls) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; if (cls) b.className = cls; b.disabled = !!wallBusy; b.addEventListener("click", ev => { ev.stopPropagation(); fn(); }); hd.append(b); return b; };
+      if (pos == null) btn("REVIEW", () => openGroup(g.fanId), "ok");
+      else {
+        if (ordered) {
+          const move = dir => { const ids = onBanner.map(x => x.fanId), j = pos + dir; [ids[pos], ids[j]] = [ids[j], ids[pos]]; crewWall.order = ids; saveWall({ order: ids }, "order"); };
+          const up = btn("▲", () => move(-1)); up.disabled = up.disabled || pos === 0; up.setAttribute("aria-label", "Move " + g.name + " earlier");
+          const dn = btn("▼", () => move(1)); dn.disabled = dn.disabled || pos === onBanner.length - 1; dn.setAttribute("aria-label", "Move " + g.name + " later");
+        }
+        btn(wallBusy === "next:" + g.fanId ? "…" : "SHOW NEXT", () => saveWall({ next: g.fanId }, "next:" + g.fanId));
+      }
       const ph = document.createElement("div"); ph.className = "ph";
       g.items.forEach(i => {
         const f = document.createElement("figure"), img = document.createElement("img"), c = document.createElement("figcaption");
@@ -2785,16 +2832,23 @@ function renderAdmin() {
       });
       d.append(hd, ph);
       const go = () => openGroup(g.fanId);
-      d.addEventListener("click", go); d.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); go(); } });
+      d.addEventListener("click", go); d.addEventListener("keydown", ev => { if (ev.target === d && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); go(); } });
       adminList.append(d);
     };
     sub("WAITING");
     if (!waiting.length) msg("No photos waiting. Guests add up to 3 from their profile.");
-    waiting.forEach(card);
+    waiting.forEach(g => card(g, null));
     sub("ON THE BANNER");
+    const tg = document.createElement("div"); tg.className = "admin-toggle";
+    const sp = document.createElement("span");
+    sp.textContent = (ordered ? "Carousel: guests take turns in this order." : "Shuffle: a random guest each time.") + " Each gets " + WALL_SECS + " s, one every " + WALL_EVERY + " s. Nobody drops off.";
+    const mb = document.createElement("button"); mb.type = "button"; mb.disabled = !!wallBusy;
+    mb.textContent = wallBusy === "mode" ? "SAVING…" : ordered ? "IN ORDER" : "SHUFFLE"; mb.setAttribute("aria-label", "Rotation: " + (ordered ? "in order" : "shuffle") + ". Tap to switch.");
+    mb.addEventListener("click", () => { const mode = ordered ? "shuffle" : "order"; crewWall.mode = mode; saveWall({ mode, order: onBanner.map(x => x.fanId) }, "mode"); });
+    tg.append(sp, mb); adminList.append(tg);
     if (!liveMomLoaded) msg("Loading…");
-    else if (!live.length && !waiting.some(g => g.items.some(i => i.live))) msg("None yet. Approved photos pop up on the stage banner every " + WALL_EVERY + " seconds or so.");
-    live.forEach(card);
+    else if (!onBanner.length) msg("None yet. Approved photos pop up on the stage banner every " + WALL_EVERY + " seconds or so.");
+    onBanner.forEach((g, i) => card(g, i));
   } else if (adminTab === "entries") {
     if (entriesErr) msg(entriesErr);
     if (!entries.length) { msg(entriesErr ? "" : "No costume entries yet. They appear here as the form is submitted."); return; }
