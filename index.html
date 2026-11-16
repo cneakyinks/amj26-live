@@ -344,9 +344,13 @@ body.guest .station-wrap { padding-top: 24px; }
 .moment-wall .pn { flex: 1; min-width: 0; margin-inline: -4%; clip-path: polygon(12% 0, 100% 0, 88% 100%, 0 100%); }
 .moment-wall .pn:first-child { margin-left: -2%; } .moment-wall .pn:last-child { margin-right: -2%; }
 .moment-wall.n1 .pn { clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }
-.moment-wall .pn img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.moment-wall .tag { position: absolute; left: 1.5%; top: 6%; z-index: 1; font-family: var(--font-display); font-size: clamp(6px, .75vw, 12px); letter-spacing: .1em;
-  color: var(--shadow); background: var(--gold); padding: .4em .6em; }
+/* each panel: a blurred copy fills the gaps, the photo itself is "contain" then zoomed toward the crew's focus point */
+.pn { position: relative; overflow: hidden; }
+.pn img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.pn img.bg { object-fit: cover; filter: blur(6px) brightness(.55) saturate(1.2); transform: scale(1.15); }
+.pn img.fg { object-fit: contain; }
+.moment-wall .tag { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); z-index: 1; white-space: nowrap; font-family: var(--font-display); font-size: clamp(6px, .75vw, 12px); letter-spacing: .1em;
+  color: var(--shadow); background: var(--gold); padding: .4em .7em; box-shadow: 0 0 0 2px var(--shadow); }
 
 /* ---------- Organiser extras ---------- */
 .admin-row img.thumb { width: 56px; height: 56px; object-fit: cover; display: block; background: #120e24; }
@@ -355,6 +359,35 @@ body.guest .station-wrap { padding-top: 24px; }
 .admin-row .pair canvas { width: 30px; height: 50px; }
 .admin-row.chg { grid-template-columns: 70px minmax(0, 1fr) auto; }
 .admin-sub { font-family: var(--font-display); font-size: 9px; letter-spacing: .1em; color: var(--muted); margin: 8px 0 0; }
+
+/* #crew on a phone: the organiser panel is the whole page, crew key first */
+body.crew-page .admin { width: 100%; border-left: 0; box-shadow: none; }
+body.crew-page #admin-close, body.crew-page .admin-hot, body.crew-page .nav { display: none; }
+body.crew-page .admin-key { padding-top: 12vh !important; max-width: 420px; width: 100%; margin: 0 auto; overflow: visible; }
+body.crew-page .admin-key .crew-hi { display: block; }
+.admin-key .crew-hi { display: none; font-family: var(--font-display); font-size: 14px; letter-spacing: .1em; color: var(--gold); margin: 0 0 6px; }
+
+/* banner crop: see exactly how the photo will sit on the LED banner before it goes up */
+.crop { position: absolute; inset: 0; z-index: 5; background: var(--panel); display: flex; flex-direction: column; overflow-y: auto; }
+.crop[hidden] { display: none; }
+.crop-body { width: 100%; max-width: 640px; margin: 0 auto; padding: 14px 16px 18px; display: grid; gap: 12px; align-content: start; }
+.crop h3 { margin: 0; font-family: var(--font-display); font-size: 11px; letter-spacing: .1em; color: var(--gold); }
+.crop .hint { margin: 0; font-size: 18px; color: var(--muted); }
+.crop-stage { padding: 10px; background: #120e24; border: 2px solid var(--line); }
+.crop-wall { position: relative; width: 100%; aspect-ratio: 1775 / 344; display: flex; overflow: hidden; background: var(--shadow); }
+.crop-wall.moment-wall { position: relative; opacity: 1; pointer-events: auto; }
+.crop-wall .tag { font-size: 7px; }
+.crop-wall .pn.edit { cursor: grab; touch-action: none; }
+.crop-wall .pn.edit::after { content: ""; position: absolute; inset: 0; border-top: 3px solid var(--lime); border-bottom: 3px solid var(--lime); pointer-events: none; }
+.crop-big { position: relative; width: min(100%, calc(42vh * var(--pa, 1.8))); aspect-ratio: var(--pa, 1.8); margin: 0 auto; background: var(--shadow); touch-action: none; cursor: grab; border: 2px dashed var(--lime); }
+.crop-big .pn { position: absolute; inset: 0; }
+.crop-row { display: flex; align-items: center; gap: 8px; }
+.crop-row input[type=range] { flex: 1; accent-color: var(--lime); }
+.crop-row span { font-family: var(--font-display); font-size: 8px; color: var(--muted); }
+.crop button { font-family: var(--font-display); font-size: 9px; letter-spacing: .08em; padding: 10px 12px; background: var(--shadow); border: 2px solid var(--line); color: var(--muted); }
+.crop .go { background: var(--lime); color: var(--shadow); border-color: var(--lime); }
+.crop .acts { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.crop .bad { color: var(--hot); font-size: 18px; margin: 0; }
 
 /* ---------- Guest phones (#join): Look -> You -> Send -> Profile ---------- */
 #guest { background: var(--void);
@@ -452,7 +485,6 @@ body.guest .station-wrap { padding-top: 24px; }
 #guest .mwall .pn { flex: 1; min-width: 0; margin-inline: -5%; clip-path: polygon(14% 0, 100% 0, 86% 100%, 0 100%); }
 #guest .mwall .pn:first-child { margin-left: -2%; } #guest .mwall .pn:last-child { margin-right: -2%; }
 #guest .mwall.n1 .pn { clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%); }
-#guest .mwall .pn img { display: block; width: 100%; height: 100%; object-fit: cover; }
 #guest .mwall .ph { flex: 1; display: grid; place-items: center; text-align: center; font-family: var(--font-display); font-size: 7px; letter-spacing: .1em; line-height: 1.8; color: var(--muted);
   background: repeating-linear-gradient(135deg, var(--panel) 0 6px, var(--shadow) 6px 12px); padding: 4px; }
 #guest .stage-tag { position: absolute; left: 8px; bottom: 8px; font-family: var(--font-display); font-size: 7px; letter-spacing: .1em; color: var(--shadow); background: var(--cyan); padding: 4px 6px; }
@@ -532,7 +564,8 @@ body.guest .station-wrap { padding-top: 24px; }
     <button type="button" id="admin-close">CLOSE</button>
   </div>
   <form class="admin-key admin-body" id="admin-key" style="flex:none;padding-top:14px" hidden>
-    <label class="admin-msg" for="admin-key-in">Enter the admin key from the Apps Script settings (ADMIN_KEY).</label>
+    <p class="crew-hi">CREW ACCESS</p>
+    <label class="admin-msg" for="admin-key-in">Enter the crew key (ADMIN_KEY in the Apps Script settings). This phone remembers it until you tap LOCK.</label>
     <input id="admin-key-in" type="password" autocomplete="off" spellcheck="false">
     <button type="submit">UNLOCK</button>
     <span class="admin-msg bad" id="admin-key-msg"></span>
@@ -550,6 +583,19 @@ body.guest .station-wrap { padding-top: 24px; }
       <button type="button" id="admin-q-x" aria-label="Close search">×</button>
     </div>
     <div class="admin-body" id="admin-list" role="tabpanel"></div>
+  </div>
+  <div class="crop" id="crop" role="dialog" aria-modal="true" aria-labelledby="crop-h" hidden>
+    <div class="crop-body">
+      <h3 id="crop-h">FIT IT TO THE BANNER</h3>
+      <p class="hint" id="crop-who"></p>
+      <div class="crop-stage"><div class="crop-wall moment-wall" id="crop-wall"></div></div>
+      <p class="hint">Drag the photo to move it. Zoom out to show the whole photo.</p>
+      <div class="crop-big" id="crop-big"></div>
+      <div class="crop-row"><span>WHOLE</span><input type="range" id="crop-z" min="1" max="8" step="0.05" value="1" aria-label="Zoom"><span>ZOOM</span></div>
+      <div class="crop-row"><button type="button" id="crop-fit">WHOLE PHOTO</button><button type="button" id="crop-fill">FILL PANEL</button></div>
+      <p class="bad" id="crop-err" hidden></p>
+      <div class="acts"><button type="button" id="crop-cancel">CANCEL</button><button type="button" class="go" id="crop-go">APPROVE</button></div>
+    </div>
   </div>
 </aside>
 
@@ -1241,18 +1287,21 @@ async function initStore() {
 const views = { stage: document.getElementById("stage"), station: document.getElementById("station"), guest: document.getElementById("guest") };
 const navStage = document.getElementById("nav-stage"), navStation = document.getElementById("nav-station");
 const fsBtn = document.getElementById("fs-btn");
-let current = "stage", guest = false;
+let current = "stage", guest = false, crewPage = false;
 function route() {
   const h = (location.hash || "").replace("#", "");
   // #join = guests' own phones (new step-by-step flow); #crew keeps the old station form behind the organiser panel
-  current = h === "join" ? "guest" : h === "station" || h === "crew" ? "station" : "stage";
-  guest = h === "crew";
+  // #crew = the organiser panel as a full page on a crew phone (the stage keeps its hidden panel as a backup)
+  crewPage = h === "crew";
+  current = h === "join" ? "guest" : h === "station" ? "station" : crewPage ? "crew" : "stage";
+  guest = false;
   document.body.classList.toggle("guest", guest);
-  if (h === "crew") { adminTab = "queue"; setTimeout(openAdmin, 0); }
+  document.body.classList.toggle("crew-page", crewPage);
+  if (crewPage) { adminTab = "queue"; setTimeout(openAdmin, 0); }
   views.stage.hidden = current !== "stage";
   views.station.hidden = current !== "station";
   views.guest.hidden = current !== "guest";
-  nav.hidden = current === "guest";
+  nav.hidden = current === "guest" || current === "crew";
   if (current === "guest") gEnter();
   navStage.toggleAttribute("aria-current", false); navStation.toggleAttribute("aria-current", false);
   (current === "stage" ? navStage : navStation).setAttribute("aria-current", "page");
@@ -1547,6 +1596,15 @@ function chatter(t) {
 }
 
 /* --- moments: approved guest photos take over the LED banner as 1, 2 or 3 slanted panels --- */
+// crop = { x, y } focus in % and z zoom; z 1 shows the whole photo over a blurred copy of itself
+const cropOf = c => c && isFinite(c.x) && isFinite(c.y) && isFinite(c.z) ? { x: +c.x, y: +c.y, z: +c.z } : { x: 50, y: 50, z: 1 };
+function setCrop(fg, c) { c = cropOf(c); fg.style.transformOrigin = c.x + "% " + c.y + "%"; fg.style.transform = "scale(" + c.z + ")"; }
+function momentPanel(src, crop) {
+  const pn = document.createElement("div"); pn.className = "pn";
+  const bg = document.createElement("img"), fg = document.createElement("img");
+  bg.className = "bg"; fg.className = "fg"; bg.alt = fg.alt = ""; bg.src = fg.src = src;
+  setCrop(fg, crop); pn.append(bg, fg); return pn;
+}
 const WALL_EVERY = 35;            // seconds between banner takeovers
 const WALL_SECS = 9;              // how long each takeover stays up
 const stageMoments = new Map();   // fanId -> [{ id, url, shownAt }]
@@ -1561,7 +1619,7 @@ async function refreshMoments() {
     const fanId = String(m.fanId || ""), url = String(m.url || "");
     if (!fanId || !/^https:\/\/drive\.google\.com\//.test(url)) return;
     if (!stageMoments.has(fanId)) stageMoments.set(fanId, []);
-    stageMoments.get(fanId).push({ id: String(m.id), url, shownAt: Number(m.shownAt) || 0 });
+    stageMoments.get(fanId).push({ id: String(m.id), url, shownAt: Number(m.shownAt) || 0, crop: m.crop || null });
     // just approved: put this guest first in line and show them soon
     if (!seenMoments.has(m.id)) { seenMoments.add(m.id); if ((Number(m.shownAt) || 0) > pageLoad - 60000) { wallLast.set(fanId, -1); wallNext = Math.min(wallNext, nowS() + 4); } }
   });
@@ -1579,13 +1637,13 @@ function wallTick(t) {
     const img = new Image(); img.onload = () => res(img); img.onerror = () => res(null); img.src = m.url; setTimeout(() => res(null), 6000);
   }))).then(imgs => {
     wallLoading = false;
-    const now = nowS(), ok = imgs.filter(Boolean), f = fans.get(id);
+    const now = nowS(), ok = imgs.map((img, i) => img && { img, crop: list[i].crop }).filter(Boolean), f = fans.get(id);
     wallLast.set(id, now);
     if (!ok.length || !f) { wallNext = now + 5; return; }
     momentWall.replaceChildren();
     momentWall.className = "moment-wall n" + ok.length;
-    ok.forEach(img => { const pn = document.createElement("div"); pn.className = "pn"; img.alt = ""; pn.append(img); momentWall.append(pn); });
-    const tag = document.createElement("span"); tag.className = "tag"; tag.textContent = "MOMENTS · " + f.name; momentWall.append(tag);
+    ok.forEach(o => momentWall.append(momentPanel(o.img.src, o.crop)));
+    const tag = document.createElement("span"); tag.className = "tag"; tag.textContent = f.name; momentWall.append(tag);
     void momentWall.offsetWidth; momentWall.classList.add("show");
     wallUntil = now + WALL_SECS;
     if (walkers.some(w => w.id === id && (w.state === "idle" || w.state === "walk"))) say(id, "THAT'S ME!", 4);
@@ -2243,7 +2301,7 @@ function gRenderWall() {
   const ok = ((G.prof && G.prof.moments) || []).filter(m => m.status === "approved").slice(0, 3), w = $g("g-mwall");
   w.className = "mwall n" + ok.length; w.replaceChildren();
   if (!ok.length) { const p = document.createElement("div"); p.className = "ph"; p.textContent = "EVENT BANNER · YOUR MOMENTS POP UP HERE"; w.append(p); return; }
-  ok.forEach(m => { const pn = document.createElement("div"), img = document.createElement("img"); pn.className = "pn"; img.src = m.thumb; img.alt = ""; pn.append(img); w.append(pn); });
+  ok.forEach(m => w.append(momentPanel(m.thumb, m.crop)));
 }
 async function gRemoveMoment(m, x) {
   const id = currentId(), tok = myTokens()[id];
@@ -2454,10 +2512,10 @@ async function loadLiveMoments() {
   catch (e) { if (!liveMomLoaded) queueErr = "Couldn't load the moments on the banner. Is the new Code.gs deployed?"; }
   renderAdmin();
 }
-async function momentAction(m, action, approve) {
+async function momentAction(m, action, approve, crop) {
   queueBusy.add("mom:" + m.id); renderAdmin();
   try {
-    await sheetPost({ action, key: adminKey, id: m.id, approve });
+    await sheetPost({ action, key: adminKey, id: m.id, approve, crop });
     pendMoments = pendMoments.filter(x => x.id !== m.id); liveMoments = liveMoments.filter(x => x.id !== m.id); queueErr = "";
     if (action === "reviewMoment" && approve) loadLiveMoments();
     refreshMoments();
@@ -2481,6 +2539,79 @@ async function setReview(on) {
   catch (e) { queueErr = "Couldn't change the setting. Try again."; }
   reviewBusy = false; renderAdmin();
 }
+
+/* --- crop editor: drag + zoom one photo, previewed inside the real banner layout for that guest --- */
+const cropEl = document.getElementById("crop"), cropWall = document.getElementById("crop-wall"), cropBig = document.getElementById("crop-big");
+const cropZ = document.getElementById("crop-z"), cropErr = document.getElementById("crop-err"), cropGo = document.getElementById("crop-go");
+let cropM = null, cropLive = false, cropC = null, cropAR = 1, cropFgs = [];
+function cropPanelAR() {
+  // width / height of this photo's panel on the real banner (falls back to an even split)
+  const ed = cropWall.querySelector(".pn.edit"), r = ed && ed.getBoundingClientRect();
+  return r && r.width && r.height ? r.width / r.height : BANNER_RATIO / Math.max(1, cropWall.querySelectorAll(".pn").length);
+}
+function cropPaint() { cropFgs.forEach(fg => setCrop(fg, cropC)); cropZ.value = String(cropC.z); }
+function openCrop(m, live) {
+  cropM = m; cropLive = live; cropC = { ...cropOf(m.crop) }; cropErr.hidden = true;
+  // the stage shows a guest's newest 3 approved photos; a photo being approved becomes the newest
+  const others = liveMoments.filter(x => x.fanId === m.fanId && x.id !== m.id);
+  let set = live ? liveMoments.filter(x => x.fanId === m.fanId) : [{ ...m, shownAt: Date.now() }].concat(others);
+  set = set.sort((a, b) => (b.shownAt || b.createdAt || 0) - (a.shownAt || a.createdAt || 0)).slice(0, 3);
+  if (!set.some(x => x.id === m.id)) set = [m].concat(set.slice(0, 2));
+  cropWall.className = "crop-wall moment-wall n" + set.length; cropWall.replaceChildren(); cropFgs = [];
+  set.forEach(x => {
+    const pn = momentPanel(x.thumb, x.id === m.id ? cropC : x.crop);
+    if (x.id === m.id) { pn.classList.add("edit"); cropFgs.push(pn.querySelector(".fg")); dragCrop(pn); }
+    cropWall.append(pn);
+  });
+  const tag = document.createElement("span"); tag.className = "tag"; tag.textContent = cleanName(m.name) || "FAN"; cropWall.append(tag);
+  document.getElementById("crop-who").textContent = (cleanName(m.name) || "FAN") + (set.length > 1 ? " · " + set.length + " photos share the banner" : " · this photo fills the banner");
+  cropGo.textContent = live ? "SAVE" : "APPROVE"; cropGo.disabled = false;
+  cropEl.hidden = false;
+  requestAnimationFrame(() => {
+    cropAR = cropPanelAR(); cropBig.style.setProperty("--pa", String(cropAR));
+    cropBig.replaceChildren(); const big = momentPanel(m.thumb, cropC); cropBig.append(big); cropFgs.push(big.querySelector(".fg"));
+    cropPaint();
+  });
+  dragCrop(cropBig);
+  cropGo.focus();
+}
+function closeCrop() { cropEl.hidden = true; cropM = null; cropWall.replaceChildren(); cropBig.replaceChildren(); cropFgs = []; }
+// zooming about a focus point o moves the photo by -(z-1)*o, so a drag of dx px moves o by -dx / ((z-1) * width)
+function dragCrop(el) {
+  if (el.dataset.drag) return; el.dataset.drag = "1";
+  let start = null;
+  el.addEventListener("pointerdown", ev => { if (!cropM) return; start = { x: ev.clientX, y: ev.clientY, c: { ...cropC }, r: el.getBoundingClientRect() }; el.setPointerCapture(ev.pointerId); ev.preventDefault(); });
+  el.addEventListener("pointermove", ev => {
+    if (!start || cropC.z <= 1.001) return;
+    const k = cropC.z - 1, cl = v => Math.max(0, Math.min(100, v));
+    cropC.x = cl(start.c.x - (ev.clientX - start.x) / (k * start.r.width) * 100);
+    cropC.y = cl(start.c.y - (ev.clientY - start.y) / (k * start.r.height) * 100);
+    cropPaint();
+  });
+  const end = () => { start = null; };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+}
+cropZ.addEventListener("input", () => { cropC.z = Number(cropZ.value) || 1; cropPaint(); });
+document.getElementById("crop-fit").addEventListener("click", () => { cropC = { x: 50, y: 50, z: 1 }; cropPaint(); });
+document.getElementById("crop-fill").addEventListener("click", () => {
+  const fg = cropFgs[0], ia = fg && fg.naturalWidth ? fg.naturalWidth / fg.naturalHeight : 1;
+  cropC.z = Math.min(8, Math.max(1, Math.round(Math.max(cropAR / ia, ia / cropAR) * 100) / 100)); cropPaint();
+});
+document.getElementById("crop-cancel").addEventListener("click", closeCrop);
+cropEl.addEventListener("keydown", ev => { if (ev.key === "Escape") { ev.stopPropagation(); closeCrop(); } });
+cropGo.addEventListener("click", async () => {
+  if (!cropM) return;
+  const m = cropM, crop = { x: Math.round(cropC.x), y: Math.round(cropC.y), z: Math.round(cropC.z * 100) / 100 };
+  if (!cropLive) { closeCrop(); momentAction(m, "reviewMoment", true, crop); return; }
+  cropGo.disabled = true; cropGo.textContent = "SAVING…";
+  try {
+    await sheetPost({ action: "cropMoment", key: adminKey, id: m.id, crop });
+    m.crop = crop; closeCrop(); refreshMoments(); renderAdmin();
+  } catch (e) {
+    cropGo.disabled = false; cropGo.textContent = "SAVE";
+    cropErr.textContent = e.code === "unknown_action" ? "Paste the new Code.gs and redeploy to save adjustments." : "Couldn't save. Try again."; cropErr.hidden = false;
+  }
+});
 
 function renderAdmin() {
   const waitingN = pending.length + changes.length;
@@ -2572,13 +2703,18 @@ function renderAdmin() {
       const tm = document.createElement("div"); tm.className = "m"; tm.textContent = fmtWhen(m.createdAt); info.append(t, tm);
       const acts = document.createElement("div"); acts.className = "acts";
       const busyM = queueBusy.has("mom:" + m.id);
-      if (live) { const rm = confirmBtn("REMOVE", () => momentAction(m, "removeMoment")); rm.disabled = busyM; acts.append(rm); }
+      if (live) {
+        const adj = document.createElement("button"); adj.type = "button"; adj.textContent = "ADJUST"; adj.disabled = busyM;
+        adj.addEventListener("click", () => openCrop(m, true));
+        const rm = confirmBtn("REMOVE", () => momentAction(m, "removeMoment")); rm.disabled = busyM; acts.append(adj, rm);
+      }
       else {
         const ok = document.createElement("button"); ok.type = "button"; ok.className = "ok"; ok.textContent = busyM ? "…" : "APPROVE";
-        ok.addEventListener("click", () => momentAction(m, "reviewMoment", true));
+        ok.addEventListener("click", () => openCrop(m, false));
         const no = confirmBtn("REJECT", () => momentAction(m, "reviewMoment", false));
         ok.disabled = no.disabled = busyM; acts.append(ok, no);
       }
+      img.addEventListener("click", () => openCrop(m, live)); img.style.cursor = "pointer";
       row.append(img, info, acts); adminList.append(row);
     };
     const sub = t => { const h = document.createElement("p"); h.className = "admin-sub"; h.textContent = t; adminList.append(h); };
@@ -2655,7 +2791,7 @@ function openAdmin() {
   if (!adminKey) adminKeyIn.focus();
 }
 function closeAdmin() {
-  if (!adminOpen) return;
+  if (!adminOpen || crewPage) return;
   markSeen(); adminOpen = false; adminEl.hidden = true; clearInterval(adminTimer); clearInterval(queueTimer);
   renderAdmin();
 }
