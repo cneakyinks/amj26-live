@@ -587,6 +587,8 @@ body.teaser .teaser-cta { display: grid; position: absolute; left: 50%; transfor
   color: var(--shadow); background: var(--gold); text-decoration: none; padding: .9em 1.3em; border: 3px solid var(--shadow);
   box-shadow: 5px 5px 0 var(--hot); animation: tixpulse 1.6s steps(2) infinite; }
 .teaser-cta .tix:hover, .teaser-cta .tix:focus-visible { background: var(--ink); }
+.teaser-cta .tix { display: grid; justify-items: center; gap: .6em; }
+.teaser-cta .tix-qr { display: block; width: clamp(96px, 9vw, 140px); height: auto; background: #fff; padding: 5px; border: 2px solid var(--shadow); }
 @keyframes tixpulse { 50% { box-shadow: 5px 5px 0 var(--cyan); } }
 .teaser-cta .lure { margin: 0; font-size: clamp(18px, 1.7vw, 26px); color: var(--ink); text-shadow: 2px 2px 0 var(--shadow);
   background: color-mix(in srgb, var(--shadow) 78%, transparent); padding: 4px 10px; }
@@ -728,7 +730,7 @@ body.teaser #g-tag-fld { display: none; }
   </div>
   <div class="hud-title" id="hud-title">LIVE @ ARTS &amp; MUSIC JAM</div>
   <div class="teaser-cta" id="teaser-cta">
-    <a class="tix" id="tix" target="_blank" rel="noopener">GET YOUR TICKETS NOW!</a>
+    <a class="tix" id="tix" target="_blank" rel="noopener"><img class="tix-qr" src="qr.png" alt="QR code for Arts &amp; Music Jam tickets" width="304" height="290"><span>GET YOUR TICKETS NOW!</span></a>
     <p class="lure">Expect more fun and experiences, <b>good music and vibes</b> at our Arts &amp; Music Jam this Saturday!</p>
     <button type="button" class="join" id="join-pre">MAKE YOUR CHARACTER · JOIN THE PRE-PARTY</button>
     <button type="button" class="idea" id="idea-btn">✎ DESIGN A COSTUME PIECE FOR THE STAGE</button>
