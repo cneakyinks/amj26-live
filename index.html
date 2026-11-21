@@ -662,6 +662,7 @@ body.teaser #g-tag-fld { display: none; }
   <a href="#stage" id="nav-stage">STAGE</a>
   <a href="#station" id="nav-station">STATION</a>
   <button type="button" id="fs-btn" title="Full screen for the big display">FULL SCREEN</button>
+  <button type="button" id="nav-logout" title="Log this device out of crew access (hides these buttons)">LOG OUT</button>
 </nav>
 
 <div class="banner" id="banner" hidden></div>
@@ -3260,6 +3261,8 @@ addEventListener("keydown", ev => {
 document.getElementById("admin-close").addEventListener("click", closeAdmin);
 document.getElementById("admin-refresh").addEventListener("click", () => { loadEntries(); loadQueue(); refreshPieces(); });
 adminLock.addEventListener("click", () => { adminKey = ""; lsSet(ADMIN_KEY_STORE, null); setTimeout(route, 0); entries = []; pending = []; changes = []; pendMoments = []; liveMoments = []; liveMomLoaded = false; renderAdmin(); if (lastRecent.length) renderRecent(lastRecent); });
+// nav LOG OUT: same as the crew panel's LOCK, so the big screen shows no crew buttons (Shift+A or #crew to log back in)
+document.getElementById("nav-logout").addEventListener("click", () => adminLock.click());
 adminKeyForm.addEventListener("submit", ev => {
   ev.preventDefault();
   const k = adminKeyIn.value.trim(); adminKeyIn.value = "";
