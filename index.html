@@ -220,6 +220,7 @@ button { cursor: pointer; }
 }
 .spr canvas { width: 42px; height: 69px; image-rendering: pixelated; }
 .spr[aria-pressed="true"] { border-color: var(--hot); background: var(--panel-2); }
+.spr.house::before { content: "✦"; position: absolute; top: 1px; right: 4px; color: var(--hot); font-size: 15px; line-height: 1; }
 .spr.comm::before { content: "★"; position: absolute; top: 1px; right: 4px; color: var(--gold); font-size: 16px; line-height: 1; }
 .spr:hover, .spr:focus-visible, .spr.peek { z-index: 6; }
 /* details slide out to the right of the tile (or left when near the edge) without moving the grid */
@@ -470,6 +471,8 @@ body.crew-page .admin-key .crew-hi { display: block; }
 #guest .tile canvas { height: 66%; width: auto; aspect-ratio: 14 / 23; margin-bottom: 14%; }
 #guest .tile[aria-pressed="true"] { border-color: var(--hot); background: var(--panel-2); }
 #guest .tile.comm::before { content: "★"; position: absolute; top: 2px; right: 5px; color: var(--gold); font-size: 16px; line-height: 1; }
+#guest .tile.house::before { content: "✦"; position: absolute; top: 2px; right: 5px; color: var(--hot); font-size: 15px; line-height: 1; }
+#guest .tile .by { position: absolute; left: 0; right: 0; top: 3px; font-size: 12px; color: var(--gold); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 20px 0 5px; }
 #guest .tile .lb { position: absolute; left: 0; right: 0; bottom: 2px; font-size: 16px; color: var(--muted); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-inline: 3px; }
 #guest .tile[aria-pressed="true"] .lb { color: var(--ink); }
 #guest .sw { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -583,19 +586,16 @@ body.teaser .countdown { display: grid; position: absolute; place-items: center;
 @keyframes cdblink { 50% { opacity: .25; } }
 body.teaser .teaser-cta { display: grid; position: absolute; left: 50%; transform: translateX(-50%); z-index: 4;
   width: min(560px, calc(100% - 32px)); justify-items: center; gap: 10px; text-align: center; }
-.teaser-cta .tix { font-family: var(--font-display); font-size: clamp(12px, 1.5vw, 20px); letter-spacing: .06em; line-height: 1.4;
+.teaser-cta .tix, .teaser-cta .join { font-family: var(--font-display); font-size: clamp(12px, 1.5vw, 20px); letter-spacing: .06em; line-height: 1.4;
   color: var(--shadow); background: var(--gold); text-decoration: none; padding: .9em 1.3em; border: 3px solid var(--shadow);
   box-shadow: 5px 5px 0 var(--hot); animation: tixpulse 1.6s steps(2) infinite; }
-.teaser-cta .tix:hover, .teaser-cta .tix:focus-visible { background: var(--ink); }
-.teaser-cta .tix { display: grid; justify-items: center; gap: .6em; }
-.teaser-cta .tix-qr { display: block; width: clamp(96px, 9vw, 140px); height: auto; background: #fff; padding: 5px; border: 2px solid var(--shadow); }
+.teaser-cta .tix:hover, .teaser-cta .tix:focus-visible, .teaser-cta .join:hover, .teaser-cta .join:focus-visible { background: var(--ink); color: var(--shadow); }
 @keyframes tixpulse { 50% { box-shadow: 5px 5px 0 var(--cyan); } }
 .teaser-cta .lure { margin: 0; font-size: clamp(18px, 1.7vw, 26px); color: var(--ink); text-shadow: 2px 2px 0 var(--shadow);
   background: color-mix(in srgb, var(--shadow) 78%, transparent); padding: 4px 10px; }
 .teaser-cta .lure b { color: var(--cyan); font-weight: normal; }
-.teaser-cta .join { font-family: var(--font-display); font-size: clamp(8px, .9vw, 12px); letter-spacing: .08em; line-height: 1.5;
-  color: var(--ink); background: var(--shadow); border: 2px solid var(--cyan); padding: .8em 1.1em; }
-.teaser-cta .join:hover, .teaser-cta .join:focus-visible { background: var(--cyan); color: var(--shadow); }
+.teaser-cta .join { display: grid; justify-items: center; gap: .8em; }
+.teaser-cta .join-qr { display: block; width: clamp(96px, 9vw, 140px); height: auto; background: #fff; padding: 5px; border: 2px solid var(--shadow); image-rendering: pixelated; }
 /* maker's mark: small, faint, top right */
 .made-by { position: fixed; z-index: 25; top: calc(env(safe-area-inset-top, 0px) + 10px); right: max(12px, env(safe-area-inset-right, 0px));
   display: flex; align-items: center; gap: 4px; text-decoration: none; opacity: .32; transition: opacity .2s; }
@@ -641,7 +641,7 @@ body.teaser #g-tag-fld { display: none; }
 #guest .linkbtn.danger { color: var(--hot); }
 
 @media (prefers-reduced-motion: reduce) {
-  .countdown .cd-sep, .teaser-cta .tix { animation: none; }
+  .countdown .cd-sep, .teaser-cta .tix, .teaser-cta .join { animation: none; }
   #guest .toast, .moment-wall { transition: none; }
   .ticker-track { animation: none; }
   .arrival, .look-note { transition: none; }
@@ -730,10 +730,9 @@ body.teaser #g-tag-fld { display: none; }
   </div>
   <div class="hud-title" id="hud-title">LIVE @ ARTS &amp; MUSIC JAM</div>
   <div class="teaser-cta" id="teaser-cta">
-    <a class="tix" id="tix" target="_blank" rel="noopener"><img class="tix-qr" src="qr.png" alt="QR code for Arts &amp; Music Jam tickets" width="304" height="290"><span>GET YOUR TICKETS NOW!</span></a>
-    <p class="lure">Expect more fun and experiences, <b>good music and vibes</b> at our Arts &amp; Music Jam this Saturday!</p>
-    <button type="button" class="join" id="join-pre">MAKE YOUR CHARACTER · JOIN THE PRE-PARTY</button>
-    <button type="button" class="idea" id="idea-btn">✎ DESIGN A COSTUME PIECE FOR THE STAGE</button>
+    <a class="tix" id="tix" target="_blank" rel="noopener">GET YOUR TICKETS NOW!</a>
+    <button type="button" class="join" id="join-pre"><img class="join-qr" src="qr-join.png" alt="QR code to make your character" width="370" height="370"><span>MAKE YOUR CHARACTER · JOIN THE PARTY</span></button>
+    <p class="lure">Expect more fun, good music and vibes! <b>Join the dancefloor</b> and <b>share your moments</b> here at Arts &amp; Music Jam 2026!</p>
   </div>
   <div class="empty" id="empty">
     <h2>THE FLOOR IS OPEN</h2>
@@ -1043,9 +1042,12 @@ const SKIN_SLOTS = new Set([4, 5, 6]);
 const COMMUNITY = new Map();
 const COMM_IDS = { hair: [], top: [], bottom: [], accessory: [] };
 const BASE = {
-  hair: ["short","long","mohawk","afro","buns","spiky"], top: ["tee","tank"],
-  bottom: ["pants","shorts"], accessory: ["none","shades","headphones","cap","crown","glowstick"],
+  hair: ["short","long","mohawk","afro","buns","spiky","curly","ponytail"], top: ["tee","tank","shortsleeve","raglan","amj26"],
+  bottom: ["pants","shorts","sporty","flares","ripped","skirt"], accessory: ["none","shades","headphones","cap","crown","glowstick","sgflag","icecream","camera"],
 };
+/* House pieces: drawn in code (so guests still pick the colour) and credited to the maker */
+const HOUSE_BY = "cneakyink";
+const HOUSE = new Set(["curly","ponytail","shortsleeve","raglan","amj26","sporty","flares","ripped","skirt","sgflag","icecream","camera"]);
 /* These arrays are shared with GROUPS, so they are refilled in place, never replaced. */
 const HAIR_STYLES = [], OUTFITS = [], BOTTOMS = [], GEAR = [];
 const SLOT_LISTS = { hair: HAIR_STYLES, top: OUTFITS, bottom: BOTTOMS, accessory: GEAR };
@@ -1071,10 +1073,14 @@ const FALLBACK_PIECES = [];
 Object.keys(COMM_IDS).forEach(kind => (APPAREL.pieces[kind] || []).forEach(p => FALLBACK_PIECES.push({ ...p, category: kind })));
 setPieces(FALLBACK_PIECES);
 const isComm = v => typeof v === "string" && COMMUNITY.has(v);
-const creditName = v => { const p = COMMUNITY.get(v); return p.handle ? "@" + p.handle : p.designer; };
+const isHouse = v => HOUSE.has(v);
+const hasCredit = v => isComm(v) || isHouse(v);
+const creditName = v => { if (isHouse(v)) return HOUSE_BY; const p = COMMUNITY.get(v); return p.handle ? "@" + p.handle : p.designer; };
 const LABEL = { short:"Short", long:"Long", mohawk:"Mohawk", afro:"Afro", buns:"Buns", spiky:"Spiky",
   tee:"Tee", tank:"Tank", pants:"Pants", shorts:"Shorts",
-  none:"None", shades:"Shades", headphones:"Phones", cap:"Cap", crown:"Crown", glowstick:"Glow" };
+  none:"None", shades:"Shades", headphones:"Phones", cap:"Cap", crown:"Crown", glowstick:"Glow",
+  curly:"Curly", ponytail:"Ponytail", shortsleeve:"Short Sleeve", raglan:"Raglan", amj26:"AMJ26 Tee",
+  sporty:"Sporty Shorts", flares:"Flares", ripped:"Ripped", skirt:"Skirt", sgflag:"SG Flag", icecream:"Ice Cream", camera:"Digicam" };
 const labelOf = v => isComm(v) ? COMMUNITY.get(v).title : LABEL[v];
 
 const GROUPS = [
@@ -1091,12 +1097,12 @@ const GROUPS = [
 function colourUsed(gr, l) {
   const v = l[gr.for];
   if (isComm(v)) return false;
-  if (gr.key === "acc") return ["headphones","cap","glowstick"].includes(v);
+  if (gr.key === "acc") return ["headphones","cap","glowstick","icecream","camera"].includes(v);
   return true;
 }
 const CREDIT_SLOTS = [["hairStyle","Hairstyle"],["outfit","Top"],["bottom","Bottoms"],["gear","Accessory"]];
 function creditsFor(l) {
-  return CREDIT_SLOTS.filter(([k]) => isComm(l[k])).map(([k, name]) => name + " by " + creditName(l[k])).join(" · ");
+  return CREDIT_SLOTS.filter(([k]) => hasCredit(l[k])).map(([k, name]) => name + " by " + creditName(l[k])).join(" · ");
 }
 
 const OUTLINE = "#0a0718", EYE = "#1b1530", MOUTH = "#7a2b4a", GOLD = "#ffd23f";
@@ -1186,19 +1192,45 @@ function buildSprite(look, pose) {
   R(3,3,8,8,skin); P(4,6,EYE); P(7,6,EYE); P(5,7,MOUTH); P(6,7,MOUTH);
 
   // bottoms
+  const light = hex => { const n = parseInt(hex.slice(1), 16); return ((n >> 16) & 255) * 0.3 + ((n >> 8) & 255) * 0.59 + (n & 255) * 0.11 > 150; };
   if (bp) paint(poseCells(bp.cells, pose));
   else {
     R(3,15,8,15,pants);
-    if (look.bottom === "shorts") { R(3,16,4,16,pants); R(7,16,8,16,pants); }
-    else { R(3,16,4,18-lUp,pants); R(7,16,8,18-rUp,pants); }
+    const b = look.bottom;
+    if (b === "shorts") { R(3,16,4,16,pants); R(7,16,8,16,pants); }
+    else if (b === "sporty") {
+      const st = light(pants) ? "#2b2560" : "#f4f0ff";
+      R(3,16,4,17-lUp,pants); R(7,16,8,17-rUp,pants);
+      R(3,15,3,17-lUp,st); R(8,15,8,17-rUp,st);
+    } else if (b === "skirt") { R(2,15,9,16,pants); R(2,16,9,16,shade(pants,0.7)); P(4,16,pants); P(7,16,pants); }
+    else {
+      R(3,16,4,18-lUp,pants); R(7,16,8,18-rUp,pants);
+      if (b === "flares") { P(2,18-lUp,pants); P(9,18-rUp,pants); }
+      // ripped knee on one leg, a higher thigh tear on the other
+      if (b === "ripped") { R(3,17-lUp,4,17-lUp,skin); R(7,16,8,16,skin); }
+    }
   }
 
   // top
   if (tp) paint(poseCells(tp.cells, pose));
   else {
     R(3,9,8,14,shirt);
-    if (look.outfit === "tank") { P(3,9,skin); P(8,9,skin); }
-    else arms.forEach(([x, y, hand]) => { if (!hand) P(x, y, shirt); });
+    const o = look.outfit;
+    if (o === "tank") { P(3,9,skin); P(8,9,skin); }
+    else if (o === "shortsleeve") arms.forEach(([x, y, hand]) => { if (!hand && y >= 8 && y <= 10) P(x, y, shirt); });
+    else if (o === "raglan") {
+      const sl = light(shirt) ? "#2b2560" : "#f4f0ff";
+      arms.forEach(([x, y, hand]) => { if (!hand) P(x, y, sl); });
+      P(3,9,sl); P(8,9,sl);
+    } else {
+      arms.forEach(([x, y, hand]) => { if (!hand) P(x, y, shirt); });
+      if (o === "amj26") {
+        // "26" across the chest, one colour per digit so they read apart
+        const a = shirt === "#ff3fa4" || shirt === "#ff6b3f" ? "#f4f0ff" : "#ff3fa4", d = light(shirt) ? "#1b1530" : "#ffd23f";
+        R(3,9,5,9,a); P(5,10,a); R(3,11,5,11,a); P(3,12,a); R(3,13,5,13,a);
+        R(6,9,8,9,d); P(6,10,d); R(6,11,8,11,d); P(6,12,d); P(8,12,d); R(6,13,8,13,d);
+      }
+    }
   }
   const raised = pose === "up" ? arms.map(([x, y]) => [x, y, g[y + 1][x + 1]]) : null;
 
@@ -1211,6 +1243,14 @@ function buildSprite(look, pose) {
     case "afro": R(2,-1,9,0,hair); R(1,1,10,3,hair); R(1,4,2,7,hair); R(9,4,10,7,hair); R(3,4,8,4,hair); break;
     case "buns": R(3,2,8,3,hair); P(3,4,hair); P(8,4,hair); R(2,0,3,1,hair); R(8,0,9,1,hair); break;
     case "spiky": R(3,2,8,3,hair); P(3,1,hair); P(5,1,hair); P(7,1,hair); P(4,0,hair); P(6,0,hair); P(8,1,hair); P(3,4,hair); P(8,4,hair); break;
+    case "curly": {
+      const d = shade(hair, 0.7);
+      R(2,1,9,3,hair); P(3,0,hair); P(4,0,hair); P(6,0,hair); P(7,0,hair); P(9,0,hair);
+      R(2,4,2,6,hair); R(9,4,9,6,hair); P(3,4,hair); P(8,4,hair); P(1,2,hair); P(10,2,hair); P(1,5,hair); P(10,5,hair);
+      P(3,1,d); P(6,1,d); P(8,2,d); P(4,2,d); P(2,3,d); P(9,4,d); P(2,6,d); P(5,3,d);
+      break;
+    }
+    case "ponytail": R(3,2,8,3,hair); P(3,4,hair); P(8,4,hair); P(9,2,hair); R(9,3,10,3,hair); R(10,4,10,7,hair); P(9,3,shade(hair,0.7)); break;
   }
   if (raised) raised.forEach(([x, y, c]) => P(x, y, c));
 
@@ -1224,6 +1264,31 @@ function buildSprite(look, pose) {
     case "glowstick":
       if (pose === "up") R(9,-1,9,2,acc); else R(10,10,10,14,acc);
       break;
+    case "sgflag": {
+      // Singapore flag held across the body: red over white, crescent + five stars in the top-left corner,
+      // a clear gap between crescent and stars, and a red margin under the stars
+      const RED = "#ef3340", WHT = "#f4f0ff", x = 0, y = 8;
+      R(x, y, x + 11, y + 4, RED); R(x, y + 5, x + 11, y + 8, WHT);
+      [[2,0],[1,1],[1,2],[2,3]].forEach(([dx, dy]) => P(x + dx, y + dy, WHT));          // crescent
+      [[6,0],[4,1],[8,1],[5,3],[7,3]].forEach(([dx, dy]) => P(x + dx, y + dy, WHT));    // stars: pentagon, bottom pair tucked in
+      if (pose !== "up") { P(x - 1, y + 4, skin); P(x + 12, y + 4, skin); }               // hands grip the sides (dancing: arms up behind it)
+      break;
+    }
+    case "icecream": {
+      // waffle cone in the right hand: a scoop in the accessory colour under a vanilla scoop, with a drip
+      const [, hy] = arms.find(([x, , h]) => h && x === 9), CONE = "#d9a05b", VAN = "#fff3d6";
+      P(10, hy, shade(CONE, 0.75)); R(10, hy - 2, 11, hy - 1, CONE); P(11, hy - 1, shade(CONE, 0.75)); P(10, hy - 2, shade(CONE, 0.8));
+      R(10, hy - 3, 11, hy - 3, acc); P(12, hy - 3, acc); P(12, hy - 2, acc);                      // flavour scoop + drip
+      R(10, hy - 5, 11, hy - 4, VAN); P(12, hy - 4, VAN); P(11, hy - 6, "#ef3340");                 // vanilla scoop + cherry
+      break;
+    }
+    case "camera": {
+      // digicam in the right hand: body in the accessory colour, dark lens, white flash
+      const [, hy] = arms.find(([x, , h]) => h && x === 9);
+      R(9, hy - 2, 11, hy, acc); P(10, hy - 1, "#1b1530"); P(11, hy - 2, "#f4f0ff"); P(9, hy - 2, shade(acc, 0.6));
+      R(9, hy, 11, hy, shade(acc, 0.75)); P(10, hy - 1, "#1b1530");
+      break;
+    }
   }
 
   // outline pass
@@ -1506,8 +1571,8 @@ document.getElementById("join-pre").addEventListener("click", () => { location.h
 const COSTUME_FORM_URL = "https://cneakyinks.github.io/pixelcostumeform/";
 const ideaModal = document.getElementById("idea-modal"), ideaFrame = document.getElementById("idea-frame"), ideaBtn = document.getElementById("idea-btn");
 function openIdea() { if (!ideaFrame.src) ideaFrame.src = COSTUME_FORM_URL; ideaModal.hidden = false; document.getElementById("idea-close").focus(); }
-function closeIdea() { ideaModal.hidden = true; ideaBtn.focus(); }
-ideaBtn.addEventListener("click", openIdea);
+function closeIdea() { ideaModal.hidden = true; ideaBtn?.focus(); }
+ideaBtn?.addEventListener("click", openIdea);   // costume link removed from the teaser for now; the pop-up stays for later
 document.getElementById("idea-close").addEventListener("click", closeIdea);
 ideaModal.addEventListener("click", ev => { if (ev.target === ideaModal) closeIdea(); });
 addEventListener("keydown", ev => { if (ev.key === "Escape" && !ideaModal.hidden) closeIdea(); });
@@ -2049,10 +2114,10 @@ function buildOptions() {
         const pop = document.createElement("span"); pop.className = "pop"; pop.setAttribute("aria-hidden", "true");
         const nm = document.createElement("b"); nm.textContent = labelOf(opt); pop.append(nm);
         let aria = labelOf(opt);
-        if (isComm(opt)) {
-          b.classList.add("comm");
+        if (hasCredit(opt)) {
+          b.classList.add(isComm(opt) ? "comm" : "house");
           const by = document.createElement("i"); by.textContent = "by " + creditName(opt); pop.append(by);
-          aria += ", community design by " + creditName(opt);
+          aria += ", design by " + creditName(opt);
         }
         b.setAttribute("aria-label", aria); b.append(c, pop);
         b.addEventListener("pointerenter", () => placePop(b));
@@ -2212,7 +2277,7 @@ function gStill(canvas, l, pose) {
   canvas.width = SW; canvas.height = SH;
   const x = canvas.getContext("2d"); x.clearRect(0, 0, SW, SH); x.drawImage(setsFor(l)[pose || "stand"], 0, 0);
 }
-const gCredits = l => CREDIT_SLOTS.filter(([k]) => isComm(l[k])).map(([k, slot]) => ({ slot, title: COMMUNITY.get(l[k]).title, by: creditName(l[k]) }));
+const gCredits = l => CREDIT_SLOTS.filter(([k]) => hasCredit(l[k])).map(([k, slot]) => ({ slot, title: labelOf(l[k]), by: creditName(l[k]) }));
 const maskEmail = e => { e = String(e || ""); const i = e.indexOf("@"); return i > 0 ? e[0] + "•••" + e.slice(i) : ""; };
 const emailOk = e => /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[a-z]{2,}$/i.test(String(e).trim());
 
@@ -2280,7 +2345,7 @@ function gRenderLook() {
 }
 function gRenderCredit() {
   const el = $g("g-credit"), c = gCredits(G.draft); el.replaceChildren();
-  if (!c.length) { el.textContent = COMMUNITY.size ? "★ pieces are designed by Jam guests" : ""; return; }
+  if (!c.length) { el.textContent = COMMUNITY.size ? "★ pieces are designed by Jam guests · ✦ pieces by " + HOUSE_BY : "✦ pieces by " + HOUSE_BY; return; }
   c.forEach((x, i) => { if (i) el.append(" · "); const b = document.createElement("b"); b.textContent = x.title; el.append(b, " by " + x.by); });
 }
 function gRenderPanel() {
@@ -2291,12 +2356,13 @@ function gRenderPanel() {
     const h = document.createElement("h3"); h.textContent = "STYLE"; wrap.append(h);
     const tiles = document.createElement("div"); tiles.className = "tiles";
     gr.options.forEach(opt => {
-      const b = document.createElement("button"); b.type = "button"; b.className = "tile" + (isComm(opt) ? " comm" : "");
+      const b = document.createElement("button"); b.type = "button"; b.className = "tile" + (isComm(opt) ? " comm" : isHouse(opt) ? " house" : "");
       b.setAttribute("aria-pressed", String(G.draft[t.style] === opt));
-      b.setAttribute("aria-label", labelOf(opt) + (isComm(opt) ? ", community design by " + creditName(opt) : ""));
+      b.setAttribute("aria-label", labelOf(opt) + (hasCredit(opt) ? ", design by " + creditName(opt) : ""));
       const c = document.createElement("canvas"); gStill(c, { ...G.draft, [t.style]: opt });
       const lb = document.createElement("span"); lb.className = "lb"; lb.textContent = labelOf(opt);
       b.append(c, lb);
+      if (hasCredit(opt)) { const by = document.createElement("span"); by.className = "by"; by.setAttribute("aria-hidden", "true"); by.textContent = creditName(opt); b.append(by); }
       b.addEventListener("click", () => { G.draft[t.style] = opt; gRenderPanel(); });
       tiles.append(b);
     });
@@ -2371,7 +2437,7 @@ $g("g-you-next").addEventListener("click", () => gGo("review"));
 /* review + send */
 function gWearRows(l) {
   return [["HAIR", "hairStyle"], ["TOP", "outfit"], ["BOTTOMS", "bottom"], ["GEAR", "gear"]]
-    .map(([k, key]) => [k, labelOf(l[key]) + (isComm(l[key]) ? " ★ by " + creditName(l[key]) : "")]);
+    .map(([k, key]) => [k, labelOf(l[key]) + (hasCredit(l[key]) ? " ★ by " + creditName(l[key]) : "")]);
 }
 function gRenderReview() {
   $g("g-r-name").textContent = G.name; $g("g-r-tag").textContent = G.tag ? "“" + G.tag + "”" : "No tagline";
