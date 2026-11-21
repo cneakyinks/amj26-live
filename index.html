@@ -147,6 +147,8 @@ button { cursor: pointer; }
   transform: translateX(calc(100% + 32px)); transition: transform .3s steps(4);
 }
 .look-note.show { transform: translateX(0); }
+/* big screens: the featured-look note slides in beside the QR box instead of over it */
+#stage:has(.teaser-cta.corner) .look-note { right: calc(max(12px, env(safe-area-inset-right, 0px)) + 196px); }
 .look-note canvas { grid-row: span 3; width: 28px; height: 46px; image-rendering: pixelated; }
 .look-note .k { font-family: var(--font-display); font-size: clamp(7px, .7vw, 10px); color: var(--cyan); letter-spacing: .1em; }
 .look-note .t { font-family: var(--font-display); font-size: clamp(9px, 1vw, 14px); line-height: 1.4; color: var(--ink); overflow-wrap: anywhere; }
@@ -576,7 +578,7 @@ body.crew-page .admin-key .crew-hi { display: block; }
 #guest .sheet-in a.btn { text-align: center; text-decoration: none; display: block; }
 
 /* ---------- Teaser (until 21 Nov 18:00 SGT): countdown on the banner, tickets in the middle ---------- */
-.countdown, .teaser-cta { display: none; }
+.countdown { display: none; }
 body.teaser .backdrop, body.teaser .empty { display: none; }
 body.teaser .countdown { display: grid; position: absolute; place-items: center; align-content: center; gap: .35em;
   background: var(--shadow); border: 3px solid var(--line); box-shadow: 0 0 0 2px var(--shadow), 0 0 24px color-mix(in srgb, var(--hot) 45%, transparent); }
@@ -589,7 +591,8 @@ body.teaser .countdown { display: grid; position: absolute; place-items: center;
 .countdown .cd-l { font-size: max(5px, .16em); color: var(--muted); letter-spacing: .14em; }
 .countdown .cd-sep { font-size: 1em; color: var(--hot); line-height: 1; animation: cdblink 1s steps(1) infinite; }
 @keyframes cdblink { 50% { opacity: .25; } }
-body.teaser .teaser-cta { display: grid; position: absolute; left: 50%; transform: translateX(-50%); z-index: 4;
+/* the QR join box stays on the live stage after 18:00 too */
+.teaser-cta { display: grid; position: absolute; left: 50%; transform: translateX(-50%); z-index: 4;
   width: min(560px, calc(100% - 32px)); justify-items: center; gap: 10px; text-align: center; }
 .teaser-cta .tix, .teaser-cta .join { font-family: var(--font-display); font-size: clamp(12px, 1.5vw, 20px); letter-spacing: .06em; line-height: 1.4;
   color: var(--shadow); background: var(--gold); text-decoration: none; padding: .9em 1.3em; border: 3px solid var(--shadow);
@@ -611,7 +614,7 @@ body.teaser .teaser-cta { display: grid; position: absolute; left: 50%; transfor
 .teaser-cta:not(.corner) .lure { width: auto; max-width: 300px; font-size: 17px; }
 @media (max-height: 680px) { .teaser-cta:not(.corner) .join { width: 128px; } .teaser-cta:not(.corner) { gap: 6px; } }
 /* big screens: top right corner, just under the "made by" mark */
-body.teaser .teaser-cta.corner { position: fixed; left: auto; right: max(12px, env(safe-area-inset-right, 0px)); transform: none;
+.teaser-cta.corner { position: fixed; left: auto; right: max(12px, env(safe-area-inset-right, 0px)); transform: none;
   top: calc(env(safe-area-inset-top, 0px) + 58px); width: auto; justify-items: end; gap: 8px; }
 /* maker's mark: small, faint, top right */
 .made-by { position: fixed; z-index: 25; top: calc(env(safe-area-inset-top, 0px) + 10px); right: max(12px, env(safe-area-inset-right, 0px));
@@ -1681,7 +1684,7 @@ function resizeScene() {
   const narrow = ch < host.height - 1;
   // phones: room under the scene for the join box (its real height while the teaser runs), never under the fan count
   if (narrow) teaserCta.classList.remove("corner");
-  const ctaH = narrow && document.body.classList.contains("teaser") ? teaserCta.offsetHeight + 16 : 260;
+  const ctaH = narrow ? teaserCta.offsetHeight + 16 : 260;
   let oy = narrow ? Math.max(Math.round(host.height * 0.1), Math.round((host.height - ch - ctaH) / 2)) : 0;
   if (narrow && oy + ch + ctaH > host.height - 8) oy = Math.max(56, Math.round(host.height - ch - ctaH - 8));
   scene.style.top = narrow ? oy + "px" : ""; scene.style.height = narrow ? ch + "px" : "";
