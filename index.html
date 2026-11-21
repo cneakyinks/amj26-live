@@ -65,6 +65,7 @@ button { cursor: pointer; }
 }
 .nav a[aria-current="page"] { background: var(--hot); color: var(--shadow); }
 .nav button { border-left: 2px solid var(--line); }
+.nav.solo button { border-left: 0; }
 
 .banner {
   position: fixed; left: 50%; transform: translateX(-50%);
@@ -1586,15 +1587,25 @@ function route() {
   views.stage.hidden = !(current === "stage" || overlay);
   views.station.hidden = current !== "station";
   views.guest.hidden = current !== "guest";
-  nav.hidden = current === "guest" || current === "crew" || !adminKey;
+  updateNav();
   if (current === "guest") gEnter();
   navStage.toggleAttribute("aria-current", false); navStation.toggleAttribute("aria-current", false);
   (current === "stage" ? navStage : navStation).setAttribute("aria-current", "page");
-  fsBtn.hidden = current !== "stage";
   if (current === "stage" || overlay) { resizeScene(); requestWake(); }
   wakeNav();
 }
 addEventListener("hashchange", () => { takeMagicLink(); route(); });
+// STAGE / STATION / LOG OUT stay crew-only; FULL SCREEN is for anyone on the stage
+// and hides itself while the page is full screen (Esc leaves)
+const navLogout = document.getElementById("nav-logout");
+function updateNav() {
+  const crew = !!adminKey;
+  navStage.hidden = navStation.hidden = navLogout.hidden = !crew;
+  fsBtn.hidden = current !== "stage" || !!document.fullscreenElement || (!crew && !document.fullscreenEnabled);
+  nav.classList.toggle("solo", !crew);
+  nav.hidden = current === "guest" || current === "crew" || (!crew && fsBtn.hidden);
+}
+document.addEventListener("fullscreenchange", () => { updateNav(); resizeScene(); wakeNav(); });
 
 /* nav auto-hides on the big screen */
 const nav = document.getElementById("nav"); let navTimer = 0;
