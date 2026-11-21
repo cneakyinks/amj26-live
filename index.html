@@ -912,7 +912,7 @@ body.teaser #g-tag-fld { display: none; }
     </div>
     <div class="foot">
       <button type="button" class="btn go" id="g-send">SEND TO THE CREW</button>
-      <div class="why" id="g-send-why">Your character drops onto the big screen. If you add a message, the crew checks it first.</div>
+      <div class="why" id="g-send-why">The crew checks every character before it goes on the big screen.</div>
     </div>
   </section>
 
@@ -2447,7 +2447,7 @@ function gRenderReview() {
     dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d;
   }));
   $g("g-send-why").classList.remove("bad");
-  $g("g-send-why").textContent = isTeaser() ? "Your character joins the pre-party stage on this website." : "Your character drops onto the big screen. If you add a message, the crew checks it first.";
+  $g("g-send-why").textContent = "The crew checks every character before it goes on the big screen.";
   $g("g-send").disabled = !store; $g("g-send").textContent = isTeaser() ? "JOIN THE PRE-PARTY" : "SEND TO THE CREW";
 }
 $g("g-send").addEventListener("click", async () => {
