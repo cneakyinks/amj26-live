@@ -1712,8 +1712,7 @@ function refreshHud() {
   if (!latest.length) { const s = document.createElement("span"); s.textContent = "Waiting for the first fan…"; tickerEl.append(s); tickerEl.style.animation = "none"; return; }
   tickerEl.style.animation = "";
   for (let rep = 0; rep < 2; rep++) latest.forEach(f => {
-    const s = document.createElement("span"); const b = document.createElement("b");
-    b.textContent = "#" + String(fanNumber(f.id)).padStart(3, "0") + " "; s.append(b, document.createTextNode(f.name)); tickerEl.append(s);
+    const s = document.createElement("span"); s.textContent = f.name; tickerEl.append(s);   // fan # stays in the data, not on screen
   });
 }
 
@@ -1888,7 +1887,7 @@ function say(id, text, secs) {
   while (bubbles.length >= 3) dropBubble(bubbles[0]);
   const el = document.createElement("div"); el.className = "bubble";
   const who = document.createElement("span"); who.className = "who";
-  who.textContent = "#" + String(fanNumber(id)).padStart(3, "0") + " " + f.name;
+  who.textContent = f.name;
   el.append(who, document.createTextNode(text));
   bubbleLayer.append(el);
   bubbles.push({ id, el, until: nowS() + secs });
