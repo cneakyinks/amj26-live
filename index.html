@@ -1348,7 +1348,7 @@ const SHEET_URL = "https://script.google.com/macros/s/AKfycbyc3FxPdY9vkY0hP1w8zT
 /* ===== Teaser switches ===== */
 const EVENT_START = Date.UTC(2026, 10, 21, 10, 0, 0);   // 21 Nov 2026, 18:00 SGT (UTC+8). Before this the site is the ticket teaser.
 const TITLE_ON = false;     // "LIVE @ ARTS & MUSIC JAM" title: hidden until the organiser says to show it
-const MOMENTS_ON = false;   // guest photos on the banner + in profiles (also set Script Property MOMENTS=on)
+const MOMENTS_ON = true;    // guest photos on the banner + in profiles (also set Script Property MOMENTS=on)
 const TICKETS_URL = "https://www.onepa.gov.sg/events/marsiling-yn-rewind-arts-and-music-jam-2026-e39721790";
 // test only: ?now=2026-11-21T17:59:50%2B08:00 pretends it's that time
 const CLOCK_SKEW = (() => { try { const q = new URLSearchParams(location.search).get("now"); const t = q ? Date.parse(q) : NaN; return isFinite(t) ? t - Date.now() : 0; } catch (e) { return 0; } })();
