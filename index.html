@@ -121,7 +121,7 @@ button { cursor: pointer; }
 .arrival {
   position: absolute; left: 50%;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 58px);
-  transform: translate(-50%, 140%);
+  transform: translate(-50%, calc(100% + 90px));   /* fully below the screen until a fan arrives (it used to peek out on phones) */
   background: var(--panel); border: 3px solid var(--gold);
   box-shadow: 6px 6px 0 var(--shadow);
   padding: 12px 22px 14px; text-align: center; min-width: min(420px, 80vw);
@@ -579,7 +579,8 @@ body.crew-page .admin-key .crew-hi { display: block; }
 body.teaser .backdrop, body.teaser .empty { display: none; }
 body.teaser .countdown { display: grid; position: absolute; place-items: center; align-content: center; gap: .35em;
   background: var(--shadow); border: 3px solid var(--line); box-shadow: 0 0 0 2px var(--shadow), 0 0 24px color-mix(in srgb, var(--hot) 45%, transparent); }
-.countdown .cd-k { font-family: var(--font-display); font-size: max(6px, .2em); letter-spacing: .14em; color: var(--cyan); }
+.countdown .cd-k { font-family: var(--font-display); font-size: max(6px, .2em); letter-spacing: .14em; color: var(--cyan); white-space: nowrap; }
+@media (max-width: 520px) { .countdown .cd-k { letter-spacing: .02em; font-size: max(5px, .19em); } }
 .countdown .cd-row { display: flex; align-items: flex-start; gap: .25em; font-family: var(--font-display); font-variant-numeric: tabular-nums; }
 .countdown .cd-u { display: grid; justify-items: center; gap: .45em; }
 .countdown .cd-n { font-size: 1em; color: var(--gold); line-height: 1; letter-spacing: .04em;
@@ -601,6 +602,13 @@ body.teaser .teaser-cta { display: grid; position: absolute; left: 50%; transfor
 .teaser-cta .join { display: grid; justify-items: center; gap: 6px; width: 180px; padding: 8px; font-size: 8px; letter-spacing: 0; line-height: 1.5; border: 0; }
 .teaser-cta .join-qr { display: block; width: 100%; height: auto; background: #fff; padding: 4px; image-rendering: pixelated; margin-bottom: 2px; }
 .teaser-cta .lure { width: 180px; font-size: 19px; line-height: 1.2; padding: 0; background: none; text-align: center; }
+.teaser-cta .tix-link { font-size: 17px; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-shadow: 2px 2px 0 var(--shadow); }
+.teaser-cta .tix-link:hover, .teaser-cta .tix-link:focus-visible { color: var(--gold); }
+.teaser-cta.corner .tix-link { width: 180px; text-align: center; }
+/* phones (join box under the scene): smaller QR card, the line on two lines */
+.teaser-cta:not(.corner) .join { width: 150px; }
+.teaser-cta:not(.corner) .lure { width: auto; max-width: 300px; font-size: 17px; }
+@media (max-height: 680px) { .teaser-cta:not(.corner) .join { width: 128px; } .teaser-cta:not(.corner) { gap: 6px; } }
 /* big screens: top right corner, just under the "made by" mark */
 body.teaser .teaser-cta.corner { position: fixed; left: auto; right: max(12px, env(safe-area-inset-right, 0px)); transform: none;
   top: calc(env(safe-area-inset-top, 0px) + 58px); width: auto; justify-items: end; gap: 8px; }
@@ -741,6 +749,7 @@ body.teaser #g-tag-fld { display: none; }
   <div class="teaser-cta" id="teaser-cta">
     <button type="button" class="join" id="join-pre"><img class="join-qr" src="qr-join.png" alt="QR code to make your character" width="370" height="370"><span>MAKE YOUR CHARACTER</span><span>JOIN THE PARTY</span></button>
     <p class="lure"><b>Join the dancefloor</b> and <b>share your moments</b> here at Arts &amp; Music Jam 2026!</p>
+    <a class="tix-link" id="tix-link" href="https://www.onepa.gov.sg/events/marsiling-yn-rewind-arts-and-music-jam-2026-e39721790" target="_blank" rel="noopener">get your tickets here!</a>
   </div>
   <div class="empty" id="empty">
     <h2>THE FLOOR IS OPEN</h2>
@@ -1629,6 +1638,7 @@ function teaserTick() {
   if (on !== teaserWas) {
     teaserWas = on;
     document.body.classList.toggle("teaser", on);
+    if (typeof resizeScene === "function" && views && !views.stage.hidden) setTimeout(resizeScene, 0);
     if (typeof gSyncYou === "function" && current === "guest" && G.screen === "you") gSyncYou();
   }
   hudTitle.hidden = !TITLE_ON || on;
@@ -1658,7 +1668,11 @@ function resizeScene() {
   // tall phone screens: keep square pixels (no stretched characters) by letterboxing the scene instead of filling the height
   const ch = Math.min(host.height, Math.round(host.width * LH / LW));
   const narrow = ch < host.height - 1;
-  const oy = narrow ? Math.max(Math.round(host.height * 0.1), Math.round((host.height - ch - 260) / 2)) : 0;
+  // phones: room under the scene for the join box (its real height while the teaser runs), never under the fan count
+  if (narrow) teaserCta.classList.remove("corner");
+  const ctaH = narrow && document.body.classList.contains("teaser") ? teaserCta.offsetHeight + 16 : 260;
+  let oy = narrow ? Math.max(Math.round(host.height * 0.1), Math.round((host.height - ch - ctaH) / 2)) : 0;
+  if (narrow && oy + ch + ctaH > host.height - 8) oy = Math.max(56, Math.round(host.height - ch - ctaH - 8));
   scene.style.top = narrow ? oy + "px" : ""; scene.style.height = narrow ? ch + "px" : "";
   scene.width = LW; scene.height = LH;
   ctx.imageSmoothingEnabled = false;
