@@ -532,6 +532,13 @@ body.crew-page .admin-key .crew-hi { display: block; }
 #guest .me .nm { font-family: var(--font-display); font-size: 18px; line-height: 1.4; text-shadow: 3px 3px 0 var(--hot); overflow-wrap: anywhere; }
 #guest .me .no { font-family: var(--font-display); font-size: 10px; color: var(--gold); line-height: 1.6; }
 #guest .me .tg { font-size: 22px; overflow-wrap: anywhere; }
+#guest .me .pen { width: 34px; height: 34px; padding: 0; display: inline-grid; place-items: center; background: var(--shadow); border: 2px solid var(--line);
+  color: var(--cyan); cursor: pointer; }
+#guest .me .pen:hover, #guest .me .pen:focus-visible { border-color: var(--hot); color: var(--ink); }
+#guest .me .pen svg { width: 18px; height: 18px; }
+#guest .info-edit { display: grid; gap: 12px; padding: 12px; border: 3px solid var(--line); background: rgba(0,0,0,.25); }
+#guest .info-edit .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#guest .info-edit .why.bad { color: var(--hot); }
 #guest .chip { font-family: var(--font-display); font-size: 8px; letter-spacing: .08em; padding: 5px 7px; border: 2px solid currentColor; }
 #guest .chip.wait { color: var(--gold); } #guest .chip.ok { color: var(--lime); } #guest .chip.bad { color: var(--hot); }
 #guest .sec { background: var(--panel); border: 3px solid var(--line); padding: 14px; display: grid; gap: 10px; }
@@ -968,10 +975,26 @@ body.after .ticker, body.after #tix-link { display: none !important; }
         </div>
         <div class="pad">
           <div class="me">
-            <div class="row"><span class="nm" id="g-p-name"></span><span class="chip wait" id="g-p-chip" hidden></span></div>
+            <div class="row"><span class="nm" id="g-p-name"></span><button type="button" class="pen" id="g-p-pen" aria-label="Edit name and tagline" title="Edit name and tagline" hidden><svg viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="M11 1h2v1h1v1h1v2h-1v1h-1v-1h-1v-1h-1v-1h-1v-1h1zM9 3h1v1h1v1h1v1h1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1H2v-3h1v-1h1v-1h1v-1h1v-1h1v-1h1v-1h1zM3 12v1h1v-1z"/></svg></button><span class="chip wait" id="g-p-chip" hidden></span></div>
             <span class="no" id="g-p-no"></span>
             <span class="tg" id="g-p-tag"></span>
           </div>
+          <form class="info-edit" id="g-p-info" hidden novalidate>
+            <div class="fld">
+              <label for="g-pi-name">STAGE NAME <small id="g-pi-ncount">0/12</small></label>
+              <input type="text" id="g-pi-name" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next">
+            </div>
+            <div class="fld">
+              <label for="g-pi-tag">TAGLINE <small id="g-pi-tcount">0/48</small></label>
+              <input type="text" id="g-pi-tag" maxlength="48" placeholder="Hello Marsiling!" spellcheck="false" enterkeyhint="done">
+              <span class="hint">Your speech bubble on stage. Optional.</span>
+            </div>
+            <p class="why" id="g-pi-why" aria-live="polite" style="margin:0;text-align:left"></p>
+            <div class="acts">
+              <button type="button" class="btn ghost" id="g-pi-cancel">CANCEL</button>
+              <button type="submit" class="btn go" id="g-pi-save">SAVE</button>
+            </div>
+          </form>
           <div class="change" id="g-p-change" hidden>
             <canvas id="gc-change" width="14" height="23" aria-label="Your new look"></canvas>
             <p id="g-p-change-t">New look waiting for the crew. Your current one stays on stage until then.</p>
@@ -2625,6 +2648,10 @@ function gRenderProfile() {
     : "";
   const msg = p ? p.message : cleanMsg(local.message);
   $g("g-p-tag").textContent = msg ? "“" + msg + "”" : "";
+  // pencil: rename / new tagline (after the event only, when nothing waits for the crew)
+  const canInfo = AFTER_PARTY && !!p && (status === "approved" || status === "pending");
+  $g("g-p-pen").hidden = !canInfo || !$g("g-p-info").hidden;
+  if (!canInfo) $g("g-p-info").hidden = true;
   const chg = $g("g-p-change"), alive = status === "approved" || status === "pending";
   chg.hidden = !(p && (p.pendingLook || p.change === "rejected"));
   chg.classList.toggle("bad", !!(p && p.change === "rejected" && !p.pendingLook));
@@ -2754,6 +2781,39 @@ function gShowSent(look, live) {
     : "Stay tuned! Your character will spawn on the big screen soon. Head to the party and watch the dancefloor.";
   $g("g-sent").hidden = false; $g("g-sent-party").focus();
 }
+
+/* profile: quick edit of name + tagline */
+const gPiName = $g("g-pi-name"), gPiTag = $g("g-pi-tag");
+function gPiSync() {
+  $g("g-pi-ncount").textContent = gPiName.value.length + "/12"; $g("g-pi-tcount").textContent = gPiTag.value.length + "/48";
+  $g("g-pi-save").disabled = !cleanName(gPiName.value);
+}
+function gPiOpen() {
+  const p = G.prof; if (!p) return;
+  gPiName.value = p.name || ""; gPiTag.value = p.message || "";
+  $g("g-pi-why").textContent = ""; $g("g-pi-why").classList.remove("bad");
+  $g("g-p-info").hidden = false; $g("g-p-pen").hidden = true; gPiSync(); gPiName.focus();
+}
+function gPiClose() { $g("g-p-info").hidden = true; gRenderProfile(); $g("g-p-pen").focus(); }
+$g("g-p-pen").addEventListener("click", gPiOpen);
+$g("g-pi-cancel").addEventListener("click", gPiClose);
+[gPiName, gPiTag].forEach(el => el.addEventListener("input", gPiSync));
+$g("g-p-info").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const id = currentId(), tok = myTokens()[id], btn = $g("g-pi-save"), why = $g("g-pi-why");
+  const name = cleanName(gPiName.value), message = cleanMsg(gPiTag.value);
+  if (!name || !tok || btn.disabled) return;
+  btn.disabled = true; btn.textContent = "SAVING…"; why.classList.remove("bad"); why.textContent = "";
+  try {
+    const j = await sheetPost({ action: "editInfo", id, token: tok, name, message });
+    const nm = j.name || name, ms = typeof j.message === "string" ? j.message : message;
+    G.prof.name = nm; G.prof.message = ms; saveProfile(id, { name: nm, message: ms });
+    $g("g-p-info").hidden = true; gRenderProfile();
+    gToast("SAVED", "Your new name and tagline show on the stage in a few seconds.");
+  } catch (e) {
+    why.textContent = e.code === "not_allowed" ? "Names can't be changed right now." : gErr(e.code); why.classList.add("bad");
+  } finally { btn.textContent = "SAVE"; gPiSync(); }
+});
 
 /* character card: a PNG to keep */
 $g("g-card").addEventListener("click", async () => {
