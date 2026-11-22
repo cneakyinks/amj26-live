@@ -751,7 +751,7 @@ body.after .ticker, body.after #tix-link { display: none !important; }
     <span class="label">FANS ON THE FLOOR</span>
     <span class="num" id="count">000</span>
   </div>
-  <div class="hud-title" id="hud-title">LIVE @ ARTS &amp; MUSIC JAM</div>
+  <div class="hud-title" id="hud-title">REWIND @ ARTS &amp; MUSIC JAM</div>
   <div class="teaser-cta" id="teaser-cta">
     <button type="button" class="join" id="join-pre"><img class="join-qr" src="qr-join.png" alt="QR code to make your character" width="370" height="370"><span>MAKE YOUR CHARACTER</span><span>JOIN THE PARTY</span></button>
     <p class="lure" id="lure"><b>Join the dancefloor</b> and <b>share your moments</b> here at Arts &amp; Music Jam 2026!</p>
@@ -1029,7 +1029,7 @@ body.after .ticker, body.after #tix-link { display: none !important; }
 "use strict";
 
 /* ===== Festival config — rename here ===== */
-const FESTIVAL = "LIVE @ ARTS & MUSIC JAM";
+const FESTIVAL = "REWIND @ ARTS & MUSIC JAM";
 const BPM = 124;
 /* Screens (same page, picked by the link):
      #stage    big screen            #station  booth tablet (resets itself after each guest)
@@ -1408,7 +1408,7 @@ function demoStore() {
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbyc3FxPdY9vkY0hP1w8zT7olzf4S1g1NtvLjg_QtI4lWknlPK1StzHmT-i4JLLZcn8k/exec";
 /* ===== Teaser switches ===== */
 const EVENT_START = Date.UTC(2026, 10, 21, 10, 0, 0);   // 21 Nov 2026, 18:00 SGT (UTC+8). Before this the site is the ticket teaser.
-const TITLE_ON = true;      // "LIVE @ ARTS & MUSIC JAM" title: shows once the countdown ends
+const TITLE_ON = true;      // "REWIND @ ARTS & MUSIC JAM" title: shows once the countdown ends
 const MOMENTS_ON = false;   // guest photos on the banner + in profiles (also set Script Property MOMENTS=on). Off after the event: photos stay private in Drive
 const AFTER_PARTY = true;   // event is over: no ticket link, no JUST IN ticker, new characters + taglines go straight on the floor (set REVIEW=off in the backend; taglines pass the word blocklist)
 const TICKETS_URL = "https://www.onepa.gov.sg/events/marsiling-yn-rewind-arts-and-music-jam-2026-e39721790";
