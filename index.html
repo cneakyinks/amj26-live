@@ -3,9 +3,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Arts &amp; Music Jam 2026 · Marsiling</title>
-<meta name="description" content="Marsiling's Arts &amp; Music Jam is here: Sat 21 Nov, 6pm. Good music, art and great vibes. Discover. Connect. Create! Get your tickets now.">
-<meta property="og:title" content="Arts &amp; Music Jam 2026 · Sat 21 Nov, 6pm">
-<meta property="og:description" content="Good music, art and great vibes in Marsiling. Discover. Connect. Create! Get your tickets now.">
+<meta name="description" content="Hope you enjoyed Marsiling's Arts &amp; Music Jam 2026! The party stays on here: make your character and join the dancefloor.">
+<meta property="og:title" content="Arts &amp; Music Jam 2026 · The party stays on">
+<meta property="og:description" content="Hope you enjoyed Arts &amp; Music Jam 2026! Make your character and join the dancefloor.">
 <meta property="og:image" content="https://cneakyinks.github.io/amj26-live/banner.jpg">
 <meta property="og:url" content="https://cneakyinks.github.io/amj26-live/">
 <meta name="twitter:card" content="summary_large_image">
@@ -655,6 +655,8 @@ body:not(.join-open) #guest .g-close { display: none; }
 #guest .scr .top { padding-right: 56px; }
 body.no-moments #g-m-sec, body.no-moments #g-mwall { display: none !important; }
 body.teaser #g-tag-fld { display: none; }
+/* after the event (AFTER_PARTY): no ticker, no ticket link */
+body.after .ticker, body.after #tix-link { display: none !important; }
 #guest details.priv { font-size: 17px; color: var(--muted); }
 #guest details.priv summary { color: var(--cyan); cursor: pointer; }
 #guest details.priv p { margin: 6px 0 0; }
@@ -752,7 +754,7 @@ body.teaser #g-tag-fld { display: none; }
   <div class="hud-title" id="hud-title">LIVE @ ARTS &amp; MUSIC JAM</div>
   <div class="teaser-cta" id="teaser-cta">
     <button type="button" class="join" id="join-pre"><img class="join-qr" src="qr-join.png" alt="QR code to make your character" width="370" height="370"><span>MAKE YOUR CHARACTER</span><span>JOIN THE PARTY</span></button>
-    <p class="lure"><b>Join the dancefloor</b> and <b>share your moments</b> here at Arts &amp; Music Jam 2026!</p>
+    <p class="lure" id="lure"><b>Join the dancefloor</b> and <b>share your moments</b> here at Arts &amp; Music Jam 2026!</p>
     <a class="tix-link" id="tix-link" href="https://www.onepa.gov.sg/events/marsiling-yn-rewind-arts-and-music-jam-2026-e39721790" target="_blank" rel="noopener">get your tickets here!</a>
   </div>
   <div class="empty" id="empty">
@@ -1407,12 +1409,15 @@ const SHEET_URL = "https://script.google.com/macros/s/AKfycbyc3FxPdY9vkY0hP1w8zT
 /* ===== Teaser switches ===== */
 const EVENT_START = Date.UTC(2026, 10, 21, 10, 0, 0);   // 21 Nov 2026, 18:00 SGT (UTC+8). Before this the site is the ticket teaser.
 const TITLE_ON = true;      // "LIVE @ ARTS & MUSIC JAM" title: shows once the countdown ends
-const MOMENTS_ON = true;    // guest photos on the banner + in profiles (also set Script Property MOMENTS=on)
+const MOMENTS_ON = false;   // guest photos on the banner + in profiles (also set Script Property MOMENTS=on). Off after the event: photos stay private in Drive
+const AFTER_PARTY = true;   // event is over: no ticket link, no JUST IN ticker, new characters + taglines go straight on the floor (set REVIEW=off in the backend; taglines pass the word blocklist)
 const TICKETS_URL = "https://www.onepa.gov.sg/events/marsiling-yn-rewind-arts-and-music-jam-2026-e39721790";
 // test only: ?now=2026-11-21T17:59:50%2B08:00 pretends it's that time
 const CLOCK_SKEW = (() => { try { const q = new URLSearchParams(location.search).get("now"); const t = q ? Date.parse(q) : NaN; return isFinite(t) ? t - Date.now() : 0; } catch (e) { return 0; } })();
 const nowMs = () => Date.now() + CLOCK_SKEW;
 const isTeaser = () => nowMs() < EVENT_START;
+// no crew check: pre-party (taglines off) and after-party (taglines go through the backend blocklist)
+const openFloor = () => isTeaser() || AFTER_PARTY;
 const ADMIN_KEY_STORE = "amj26-admin-key";   // same key name as the costume form, so one unlock covers both
 const TOKEN_STORE = "amj26-fan-tokens";
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -1598,13 +1603,13 @@ function route() {
   wakeNav();
 }
 addEventListener("hashchange", () => { takeMagicLink(); route(); });
-// STAGE / STATION / LOG OUT stay crew-only; FULL SCREEN is for anyone on the stage
-// and hides itself while the page is full screen (Esc leaves)
+// STAGE / STATION / LOG OUT / FULL SCREEN are crew-only;
+// FULL SCREEN hides itself while the page is full screen (Esc leaves)
 const navLogout = document.getElementById("nav-logout");
 function updateNav() {
   const crew = !!adminKey;
   navStage.hidden = navStation.hidden = navLogout.hidden = !crew;
-  fsBtn.hidden = current !== "stage" || !!document.fullscreenElement || (!crew && !document.fullscreenEnabled);
+  fsBtn.hidden = !crew || current !== "stage" || !!document.fullscreenElement;
   nav.classList.toggle("solo", !crew);
   nav.hidden = current === "guest" || current === "crew" || (!crew && fsBtn.hidden);
 }
@@ -1666,6 +1671,8 @@ function teaserTick() {
   document.getElementById("cd-s").textContent = pad2(left % 60);
 }
 document.body.classList.toggle("no-moments", !MOMENTS_ON);
+document.body.classList.toggle("after", AFTER_PARTY);
+if (AFTER_PARTY) document.getElementById("lure").textContent = "Hope you enjoyed our Arts & Music Jam 2026, the party stays on here!";
 teaserTick(); setInterval(teaserTick, 1000);
 function stageGeom() {
   const cx = Math.round(LW / 2), sw = Math.round(Math.min(230, LW * 0.62)), sx = cx - Math.round(sw / 2);
@@ -2379,6 +2386,7 @@ const gErr = code => code === "quota_exceeded" ? "The stage is full right now. A
   : code === "drive" ? "Photos can't be saved yet. Show this to the crew at the booth."
   : code === "moments_off" ? "Photos open at the Jam itself. Check back on 21 Nov!"
   : code === "name_blocked" ? "That stage name isn't allowed. Pick a different one."
+  : code === "msg_blocked" ? "That tagline isn't allowed. Try different words."
   : code === "email_full" ? "This email already has 3 characters. Open your profile instead, or delete one first."
   : code === "server" ? "The stage had a hiccup. Try again, or show this to the crew at the booth."
   : "Couldn't reach the stage. Check your connection and try again.";
@@ -2414,8 +2422,8 @@ G_TABS.forEach(t => {
 });
 function gRenderLook() {
   $g("g-look-steps").hidden = G.edit; $g("g-look-title").hidden = !G.edit; $g("g-look-why").hidden = !G.edit;
-  $g("g-look-why").classList.remove("bad"); $g("g-look-why").textContent = "Your current look stays on stage until the crew approves the change.";
-  $g("g-look-next").textContent = G.edit ? "SEND CHANGES TO THE CREW" : "NEXT: NAME & TAGLINE";
+  $g("g-look-why").classList.remove("bad"); $g("g-look-why").textContent = AFTER_PARTY ? "Your new look goes straight onto the dancefloor." : "Your current look stays on stage until the crew approves the change.";
+  $g("g-look-next").textContent = G.edit ? (AFTER_PARTY ? "SAVE MY NEW LOOK" : "SEND CHANGES TO THE CREW") : "NEXT: NAME & TAGLINE";
   $g("g-look-next").disabled = false;
   gRenderPanel();
 }
@@ -2484,7 +2492,7 @@ $g("g-look-next").addEventListener("click", async () => {
     if (j.mode === "live") gToast("NEW LOOK IS LIVE", "Your character just changed on the stage.");
     else gToast("CHANGE SENT", j.mode === "direct" ? "Your new look replaces the old one in the crew's queue." : "The crew will check your new look. Your current one stays on stage meanwhile.");
   } catch (e) {
-    btn.disabled = false; btn.textContent = "SEND CHANGES TO THE CREW";
+    btn.disabled = false; btn.textContent = AFTER_PARTY ? "SAVE MY NEW LOOK" : "SEND CHANGES TO THE CREW";
     $g("g-look-why").textContent = gErr(e.code); $g("g-look-why").classList.add("bad");
   }
 });
@@ -2523,8 +2531,8 @@ function gRenderReview() {
     dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d;
   }));
   $g("g-send-why").classList.remove("bad");
-  $g("g-send-why").textContent = "The crew checks every character before it goes on the big screen.";
-  $g("g-send").disabled = !store; $g("g-send").textContent = isTeaser() ? "JOIN THE PARTY" : "SEND TO THE CREW";
+  $g("g-send-why").textContent = AFTER_PARTY ? "Your character drops straight onto the dancefloor." : "The crew checks every character before it goes on the big screen.";
+  $g("g-send").disabled = !store; $g("g-send").textContent = openFloor() ? "JOIN THE PARTY" : "SEND TO THE CREW";
 }
 $g("g-send").addEventListener("click", async () => {
   if (G.sending || !store) return;
@@ -2537,7 +2545,7 @@ $g("g-send").addEventListener("click", async () => {
     G.prof = null; gGo("profile");
     gShowSent(l, res.status === "approved");
   } catch (e) {
-    btn.disabled = false; btn.textContent = isTeaser() ? "JOIN THE PARTY" : "SEND TO THE CREW";
+    btn.disabled = false; btn.textContent = openFloor() ? "JOIN THE PARTY" : "SEND TO THE CREW";
     $g("g-send-why").textContent = gErr(e.code); $g("g-send-why").classList.add("bad");
   } finally { G.sending = false; }
 });
@@ -2742,7 +2750,7 @@ $g("g-sent-close").addEventListener("click", () => { $g("g-sent").hidden = true;
 function gShowSent(look, live) {
   gStill($g("gc-sent"), look);
   $g("g-sent-t").textContent = live
-    ? "You're on the dancefloor now! Head to the party and spot your character by the DJ."
+    ? (AFTER_PARTY ? "You're on the dancefloor now! Open the stage to watch your character dance." : "You're on the dancefloor now! Head to the party and spot your character by the DJ.")
     : "Stay tuned! Your character will spawn on the big screen soon. Head to the party and watch the dancefloor.";
   $g("g-sent").hidden = false; $g("g-sent-party").focus();
 }
